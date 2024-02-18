@@ -1,0 +1,30 @@
+[package]
+name = "unit-sphere"
+version = "0.1.0"
+authors = ["Ken Barker <ken.barker@via-technology.aero>"]
+description = "A library for performing geometric calculations on the surface of a sphere."
+repository = "https://github.com/kenba/unit-sphere-rs"
+readme = "README.md"
+keywords = ["geometry", "sphere"]
+categories = ["mathematics", "no-std"]
+license = "MIT"
+edition = "2021"
+publish = false
+
+[dependencies]
+angle-sc = "0.1"
+libm = "0.2"
+nalgebra = "0.32"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+
+[dev-dependencies]
+serde_json = "1.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+enum_glob_use = "deny"
+nursery = "deny"
+pedantic = "deny"
+unwrap_used = "deny"

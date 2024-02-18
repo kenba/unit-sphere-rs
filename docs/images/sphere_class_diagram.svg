@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentStyleType="text/css" height="450px" preserveAspectRatio="none" style="width:331px;height:450px;background:#FFFFFF;" version="1.1" viewBox="0 0 331 450" width="331px" zoomAndPan="magnify"><defs/><g><!--MD5=[26d83f5000736b18d68aea483f9a5ad3]
+cluster unit_sphere--><g id="cluster_unit_sphere"><path d="M8.5,6 L94.5,6 A3.75,3.75 0 0 1 97,8.5 L104,29.6094 L320.5,29.6094 A2.5,2.5 0 0 1 323,32.1094 L323,316.5 A2.5,2.5 0 0 1 320.5,319 L8.5,319 A2.5,2.5 0 0 1 6,316.5 L6,8.5 A2.5,2.5 0 0 1 8.5,6 " fill="none" style="stroke:#000000;stroke-width:1.5;"/><line style="stroke:#000000;stroke-width:1.5;" x1="6" x2="104" y1="29.6094" y2="29.6094"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="85" x="10" y="22.5332">unit_sphere</text></g><!--MD5=[cb13657d0ee927eafe61aa4c4029dc0b]
+cluster angle_sc--><g id="cluster_angle_sc"><path d="M105.5,343 L169.5,343 A3.75,3.75 0 0 1 172,345.5 L179,366.6094 L321.5,366.6094 A2.5,2.5 0 0 1 324,369.1094 L324,440.5 A2.5,2.5 0 0 1 321.5,443 L105.5,443 A2.5,2.5 0 0 1 103,440.5 L103,345.5 A2.5,2.5 0 0 1 105.5,343 " fill="none" style="stroke:#000000;stroke-width:1.5;"/><line style="stroke:#000000;stroke-width:1.5;" x1="103" x2="179" y1="366.6094" y2="366.6094"/><text fill="#000000" font-family="sans-serif" font-size="14" font-weight="bold" lengthAdjust="spacing" textLength="63" x="107" y="359.5332">angle_sc</text></g><!--MD5=[f79ffdf0c5c11962ce9e805a132dcbb9]
+class unit_sphere::Arc--><g id="elem_unit_sphere::Arc"><rect codeLine="9" fill="#F1F1F1" height="118.4375" id="unit_sphere::Arc" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="89" x="60.5" y="42"/><ellipse cx="91.7" cy="58" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M94.4656,53.875 Q94.6219,53.6563 94.8094,53.5469 Q94.9969,53.4375 95.2156,53.4375 Q95.5906,53.4375 95.825,53.6953 Q96.0594,53.9531 96.0594,54.5625 L96.0594,56.0156 Q96.0594,56.625 95.825,56.8906 Q95.5906,57.1563 95.2156,57.1563 Q94.8719,57.1563 94.6688,56.9531 Q94.4656,56.7656 94.3563,56.25 Q94.3094,55.8906 94.1219,55.7031 Q93.7938,55.3281 93.1844,55.1094 Q92.575,54.8906 91.95,54.8906 Q91.1844,54.8906 90.5516,55.2188 Q89.9188,55.5469 89.4266,56.2969 Q88.9344,57.0469 88.9344,58.0781 L88.9344,59.1719 Q88.9344,60.4063 89.825,61.2266 Q90.7156,62.0469 92.3094,62.0469 Q93.2469,62.0469 93.9031,61.7969 Q94.2938,61.6406 94.7156,61.2031 Q94.9813,60.9375 95.1297,60.8594 Q95.2781,60.7813 95.4813,60.7813 Q95.8094,60.7813 96.0672,61.0391 Q96.325,61.2969 96.325,61.6406 Q96.325,61.9844 95.9813,62.3906 Q95.4813,62.9688 94.6844,63.2969 Q93.6063,63.75 92.3094,63.75 Q90.7938,63.75 89.5906,63.125 Q88.6063,62.625 87.9188,61.5547 Q87.2313,60.4844 87.2313,59.2031 L87.2313,58.0469 Q87.2313,56.7188 87.8484,55.5703 Q88.4656,54.4219 89.5594,53.8047 Q90.6531,53.1875 91.8875,53.1875 Q92.6219,53.1875 93.2703,53.3516 Q93.9188,53.5156 94.4656,53.875 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="21" x="109.3" y="63.7285">Arc</text><line style="stroke:#181818;stroke-width:0.5;" x1="61.5" x2="148.5" y1="74" y2="74"/><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="68.5" y="85.3047"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="8" x="80.5" y="92.5332">a</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="68.5" y="102.9141"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="27" x="80.5" y="110.1426">pole</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="68.5" y="120.5234"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="39" x="80.5" y="127.752">length</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="68.5" y="138.1328"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="63" x="80.5" y="145.3613">half_width</text><line style="stroke:#181818;stroke-width:0.5;" x1="61.5" x2="148.5" y1="152.4375" y2="152.4375"/></g><!--MD5=[6838a07597689e5694eb9878999c73e1]
+class unit_sphere::Vector3d--><g id="elem_unit_sphere::Vector3d"><rect codeLine="16" fill="#F1F1F1" height="100.8281" id="unit_sphere::Vector3d" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="89" x="184.5" y="50.5"/><ellipse cx="199.5" cy="66.5" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M202.2656,62.375 Q202.4219,62.1563 202.6094,62.0469 Q202.7969,61.9375 203.0156,61.9375 Q203.3906,61.9375 203.625,62.1953 Q203.8594,62.4531 203.8594,63.0625 L203.8594,64.5156 Q203.8594,65.125 203.625,65.3906 Q203.3906,65.6563 203.0156,65.6563 Q202.6719,65.6563 202.4688,65.4531 Q202.2656,65.2656 202.1563,64.75 Q202.1094,64.3906 201.9219,64.2031 Q201.5938,63.8281 200.9844,63.6094 Q200.375,63.3906 199.75,63.3906 Q198.9844,63.3906 198.3516,63.7188 Q197.7188,64.0469 197.2266,64.7969 Q196.7344,65.5469 196.7344,66.5781 L196.7344,67.6719 Q196.7344,68.9063 197.625,69.7266 Q198.5156,70.5469 200.1094,70.5469 Q201.0469,70.5469 201.7031,70.2969 Q202.0938,70.1406 202.5156,69.7031 Q202.7813,69.4375 202.9297,69.3594 Q203.0781,69.2813 203.2813,69.2813 Q203.6094,69.2813 203.8672,69.5391 Q204.125,69.7969 204.125,70.1406 Q204.125,70.4844 203.7813,70.8906 Q203.2813,71.4688 202.4844,71.7969 Q201.4063,72.25 200.1094,72.25 Q198.5938,72.25 197.3906,71.625 Q196.4063,71.125 195.7188,70.0547 Q195.0313,68.9844 195.0313,67.7031 L195.0313,66.5469 Q195.0313,65.2188 195.6484,64.0703 Q196.2656,62.9219 197.3594,62.3047 Q198.4531,61.6875 199.6875,61.6875 Q200.4219,61.6875 201.0703,61.8516 Q201.7188,62.0156 202.2656,62.375 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="57" x="213.5" y="72.2285">Vector3d</text><line style="stroke:#181818;stroke-width:0.5;" x1="185.5" x2="272.5" y1="82.5" y2="82.5"/><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="192.5" y="93.8047"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="6" x="204.5" y="101.0332">x</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="192.5" y="111.4141"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="7" x="204.5" y="118.6426">y</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="192.5" y="129.0234"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="6" x="204.5" y="136.252">z</text><line style="stroke:#181818;stroke-width:0.5;" x1="185.5" x2="272.5" y1="143.3281" y2="143.3281"/></g><!--MD5=[8a01ef15b2c6dccd9164468e177481d9]
+class unit_sphere::LatLong--><g id="elem_unit_sphere::LatLong"><rect codeLine="24" fill="#F1F1F1" height="83.2188" id="unit_sphere::LatLong" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="84" x="223" y="220"/><ellipse cx="238" cy="236" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M240.7656,231.875 Q240.9219,231.6563 241.1094,231.5469 Q241.2969,231.4375 241.5156,231.4375 Q241.8906,231.4375 242.125,231.6953 Q242.3594,231.9531 242.3594,232.5625 L242.3594,234.0156 Q242.3594,234.625 242.125,234.8906 Q241.8906,235.1563 241.5156,235.1563 Q241.1719,235.1563 240.9688,234.9531 Q240.7656,234.7656 240.6563,234.25 Q240.6094,233.8906 240.4219,233.7031 Q240.0938,233.3281 239.4844,233.1094 Q238.875,232.8906 238.25,232.8906 Q237.4844,232.8906 236.8516,233.2188 Q236.2188,233.5469 235.7266,234.2969 Q235.2344,235.0469 235.2344,236.0781 L235.2344,237.1719 Q235.2344,238.4063 236.125,239.2266 Q237.0156,240.0469 238.6094,240.0469 Q239.5469,240.0469 240.2031,239.7969 Q240.5938,239.6406 241.0156,239.2031 Q241.2813,238.9375 241.4297,238.8594 Q241.5781,238.7813 241.7813,238.7813 Q242.1094,238.7813 242.3672,239.0391 Q242.625,239.2969 242.625,239.6406 Q242.625,239.9844 242.2813,240.3906 Q241.7813,240.9688 240.9844,241.2969 Q239.9063,241.75 238.6094,241.75 Q237.0938,241.75 235.8906,241.125 Q234.9063,240.625 234.2188,239.5547 Q233.5313,238.4844 233.5313,237.2031 L233.5313,236.0469 Q233.5313,234.7188 234.1484,233.5703 Q234.7656,232.4219 235.8594,231.8047 Q236.9531,231.1875 238.1875,231.1875 Q238.9219,231.1875 239.5703,231.3516 Q240.2188,231.5156 240.7656,231.875 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="52" x="252" y="241.7285">LatLong</text><line style="stroke:#181818;stroke-width:0.5;" x1="224" x2="306" y1="252" y2="252"/><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="231" y="263.3047"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="15" x="243" y="270.5332">lat</text><rect fill="none" height="6" style="stroke:#C82930;stroke-width:1.0;" width="6" x="231" y="280.9141"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="19" x="243" y="288.1426">lon</text><line style="stroke:#181818;stroke-width:0.5;" x1="224" x2="306" y1="295.2188" y2="295.2188"/></g><!--MD5=[db6d38336a8802581151100dd4514f49]
+class unit_sphere::great_circle--><g id="elem_unit_sphere::great_circle"><rect codeLine="29" fill="#F1F1F1" height="83.2188" id="unit_sphere::great_circle" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="166" x="22" y="220"/><ellipse cx="64" cy="236" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M66.7656,231.875 Q66.9219,231.6563 67.1094,231.5469 Q67.2969,231.4375 67.5156,231.4375 Q67.8906,231.4375 68.125,231.6953 Q68.3594,231.9531 68.3594,232.5625 L68.3594,234.0156 Q68.3594,234.625 68.125,234.8906 Q67.8906,235.1563 67.5156,235.1563 Q67.1719,235.1563 66.9688,234.9531 Q66.7656,234.7656 66.6563,234.25 Q66.6094,233.8906 66.4219,233.7031 Q66.0938,233.3281 65.4844,233.1094 Q64.875,232.8906 64.25,232.8906 Q63.4844,232.8906 62.8516,233.2188 Q62.2188,233.5469 61.7266,234.2969 Q61.2344,235.0469 61.2344,236.0781 L61.2344,237.1719 Q61.2344,238.4063 62.125,239.2266 Q63.0156,240.0469 64.6094,240.0469 Q65.5469,240.0469 66.2031,239.7969 Q66.5938,239.6406 67.0156,239.2031 Q67.2813,238.9375 67.4297,238.8594 Q67.5781,238.7813 67.7813,238.7813 Q68.1094,238.7813 68.3672,239.0391 Q68.625,239.2969 68.625,239.6406 Q68.625,239.9844 68.2813,240.3906 Q67.7813,240.9688 66.9844,241.2969 Q65.9063,241.75 64.6094,241.75 Q63.0938,241.75 61.8906,241.125 Q60.9063,240.625 60.2188,239.5547 Q59.5313,238.4844 59.5313,237.2031 L59.5313,236.0469 Q59.5313,234.7188 60.1484,233.5703 Q60.7656,232.4219 61.8594,231.8047 Q62.9531,231.1875 64.1875,231.1875 Q64.9219,231.1875 65.5703,231.3516 Q66.2188,231.5156 66.7656,231.875 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="74" x="84" y="241.7285">great_circle</text><line style="stroke:#181818;stroke-width:0.5;" x1="23" x2="187" y1="252" y2="252"/><ellipse cx="33" cy="266.3047" fill="none" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="140" x="42" y="270.5332">calculate_gc_distance</text><ellipse cx="33" cy="283.9141" fill="none" rx="3" ry="3" style="stroke:#038048;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="135" x="42" y="288.1426">calculate_gc_azimuth</text><line style="stroke:#181818;stroke-width:0.5;" x1="23" x2="187" y1="295.2188" y2="295.2188"/></g><!--MD5=[c43c29821ea09622c8803ac1bf52f406]
+class angle_sc::Angle--><g id="elem_angle_sc::Angle"><rect fill="#F1F1F1" height="48" id="angle_sc::Angle" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="68" x="119" y="379"/><ellipse cx="134" cy="395" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M136.7656,390.875 Q136.9219,390.6563 137.1094,390.5469 Q137.2969,390.4375 137.5156,390.4375 Q137.8906,390.4375 138.125,390.6953 Q138.3594,390.9531 138.3594,391.5625 L138.3594,393.0156 Q138.3594,393.625 138.125,393.8906 Q137.8906,394.1563 137.5156,394.1563 Q137.1719,394.1563 136.9688,393.9531 Q136.7656,393.7656 136.6563,393.25 Q136.6094,392.8906 136.4219,392.7031 Q136.0938,392.3281 135.4844,392.1094 Q134.875,391.8906 134.25,391.8906 Q133.4844,391.8906 132.8516,392.2188 Q132.2188,392.5469 131.7266,393.2969 Q131.2344,394.0469 131.2344,395.0781 L131.2344,396.1719 Q131.2344,397.4063 132.125,398.2266 Q133.0156,399.0469 134.6094,399.0469 Q135.5469,399.0469 136.2031,398.7969 Q136.5938,398.6406 137.0156,398.2031 Q137.2813,397.9375 137.4297,397.8594 Q137.5781,397.7813 137.7813,397.7813 Q138.1094,397.7813 138.3672,398.0391 Q138.625,398.2969 138.625,398.6406 Q138.625,398.9844 138.2813,399.3906 Q137.7813,399.9688 136.9844,400.2969 Q135.9063,400.75 134.6094,400.75 Q133.0938,400.75 131.8906,400.125 Q130.9063,399.625 130.2188,398.5547 Q129.5313,397.4844 129.5313,396.2031 L129.5313,395.0469 Q129.5313,393.7188 130.1484,392.5703 Q130.7656,391.4219 131.8594,390.8047 Q132.9531,390.1875 134.1875,390.1875 Q134.9219,390.1875 135.5703,390.3516 Q136.2188,390.5156 136.7656,390.875 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="36" x="148" y="400.7285">Angle</text><line style="stroke:#181818;stroke-width:0.5;" x1="120" x2="186" y1="411" y2="411"/><line style="stroke:#181818;stroke-width:0.5;" x1="120" x2="186" y1="419" y2="419"/></g><!--MD5=[7f9116ebae8cb057dda468efa32327bb]
+class angle_sc::Degrees--><g id="elem_angle_sc::Degrees"><rect fill="#F1F1F1" height="48" id="angle_sc::Degrees" rx="2.5" ry="2.5" style="stroke:#181818;stroke-width:0.5;" width="86" x="222" y="379"/><ellipse cx="237" cy="395" fill="#ADD1B2" rx="11" ry="11" style="stroke:#181818;stroke-width:1.0;"/><path d="M239.7656,390.875 Q239.9219,390.6563 240.1094,390.5469 Q240.2969,390.4375 240.5156,390.4375 Q240.8906,390.4375 241.125,390.6953 Q241.3594,390.9531 241.3594,391.5625 L241.3594,393.0156 Q241.3594,393.625 241.125,393.8906 Q240.8906,394.1563 240.5156,394.1563 Q240.1719,394.1563 239.9688,393.9531 Q239.7656,393.7656 239.6563,393.25 Q239.6094,392.8906 239.4219,392.7031 Q239.0938,392.3281 238.4844,392.1094 Q237.875,391.8906 237.25,391.8906 Q236.4844,391.8906 235.8516,392.2188 Q235.2188,392.5469 234.7266,393.2969 Q234.2344,394.0469 234.2344,395.0781 L234.2344,396.1719 Q234.2344,397.4063 235.125,398.2266 Q236.0156,399.0469 237.6094,399.0469 Q238.5469,399.0469 239.2031,398.7969 Q239.5938,398.6406 240.0156,398.2031 Q240.2813,397.9375 240.4297,397.8594 Q240.5781,397.7813 240.7813,397.7813 Q241.1094,397.7813 241.3672,398.0391 Q241.625,398.2969 241.625,398.6406 Q241.625,398.9844 241.2813,399.3906 Q240.7813,399.9688 239.9844,400.2969 Q238.9063,400.75 237.6094,400.75 Q236.0938,400.75 234.8906,400.125 Q233.9063,399.625 233.2188,398.5547 Q232.5313,397.4844 232.5313,396.2031 L232.5313,395.0469 Q232.5313,393.7188 233.1484,392.5703 Q233.7656,391.4219 234.8594,390.8047 Q235.9531,390.1875 237.1875,390.1875 Q237.9219,390.1875 238.5703,390.3516 Q239.2188,390.5156 239.7656,390.875 Z " fill="#000000"/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacing" textLength="54" x="251" y="400.7285">Degrees</text><line style="stroke:#181818;stroke-width:0.5;" x1="223" x2="307" y1="411" y2="411"/><line style="stroke:#181818;stroke-width:0.5;" x1="223" x2="307" y1="419" y2="419"/></g><!--MD5=[9303aa9ca6dccf5e9c9cb06325c6af1e]
+reverse link unit_sphere::Arc to unit_sphere::Vector3d--><g id="link_unit_sphere::Arc_unit_sphere::Vector3d"><path codeLine="22" d="M162.595,101 C169.836,101 177.076,101 184.316,101 " fill="none" id="unit_sphere::Arc-backto-unit_sphere::Vector3d" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="149.563,101,155.563,105,161.563,101,155.563,97,149.563,101" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="7" x="169.6367" y="97.2618">2</text></g><!--MD5=[293cb27c5378028a354d351560603e17]
+link unit_sphere::Arc to unit_sphere::great_circle--><g id="link_unit_sphere::Arc_unit_sphere::great_circle"><path codeLine="34" d="M105,160.12 C105,179.91 105,201.597 105,219.734 " fill="none" id="unit_sphere::Arc-unit_sphere::great_circle" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[685bcd949556ab6ff177f01d58f2f4e5]
+link unit_sphere::Vector3d to unit_sphere::LatLong--><g id="link_unit_sphere::Vector3d_unit_sphere::LatLong"><path codeLine="36" d="M240.292,151.716 C245.282,173.686 251.075,199.19 255.797,219.98 " fill="none" id="unit_sphere::Vector3d-unit_sphere::LatLong" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[0df285d7359e8a9bfb450470dbc3cb74]
+link unit_sphere::Vector3d to unit_sphere::great_circle--><g id="link_unit_sphere::Vector3d_unit_sphere::great_circle"><path codeLine="37" d="M190.106,151.716 C172.918,173.686 152.965,199.19 136.7,219.98 " fill="none" id="unit_sphere::Vector3d-unit_sphere::great_circle" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[ce08f1a1aecba047fa6b60727f009144]
+link unit_sphere::great_circle to unit_sphere::LatLong--><g id="link_unit_sphere::great_circle_unit_sphere::LatLong"><path codeLine="39" d="M188.125,261.5 C199.736,261.5 211.348,261.5 222.959,261.5 " fill="none" id="unit_sphere::great_circle-unit_sphere::LatLong" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[450a1f00943a0e8d983086356296c579]
+link unit_sphere::great_circle to angle_sc::Angle--><g id="link_unit_sphere::great_circle_angle_sc::Angle"><path codeLine="42" d="M119.013,303.224 C127.48,327.833 137.966,358.309 145.034,378.8482 " fill="none" id="unit_sphere::great_circle-angle_sc::Angle" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[702920a2d4b80df445c5fc4a0a372c06]
+link unit_sphere::LatLong to angle_sc::Angle--><g id="link_unit_sphere::LatLong_angle_sc::Angle"><path codeLine="43" d="M230.822,303.342 C222.323,313.624 213.277,324.674 205,335 C193.397,349.476 180.619,365.9331 170.633,378.9141 " fill="none" id="unit_sphere::LatLong-angle_sc::Angle" style="stroke:#181818;stroke-width:1.0;stroke-dasharray:7.0,7.0;"/></g><!--MD5=[9f888f60d224d988089a814825072484]
+reverse link unit_sphere::LatLong to angle_sc::Degrees--><g id="link_unit_sphere::LatLong_angle_sc::Degrees"><path codeLine="44" d="M265,316.353 C265,338.015 265,361.8388 265,378.8482 " fill="none" id="unit_sphere::LatLong-backto-angle_sc::Degrees" style="stroke:#181818;stroke-width:1.0;"/><polygon fill="#181818" points="265,303.224,261,309.224,265,315.224,269,309.224,265,303.224" style="stroke:#181818;stroke-width:1.0;"/><text fill="#000000" font-family="sans-serif" font-size="13" lengthAdjust="spacing" textLength="7" x="257.1031" y="368.1495">2</text></g><!--MD5=[5c603b38c78475ec01b07d9cad649936]
+@startuml
+
+'Copyright (c) 2024 Via Technology Ltd. All Rights Reserved.
+
+' title Sphere Class Diagram
+
+set namespaceSeparator ::
+
+    namespace unit_sphere {
+        class Arc {
+            - a
+            - pole
+            - length
+            - half_width
+        }
+
+        class Vector3d {
+            - x
+            - y
+            - z
+        }
+
+        Arc *- "2" Vector3d
+
+        class LatLong {
+            - lat
+            - lon
+        }
+
+        class great_circle {
+            + calculate_gc_distance
+            + calculate_gc_azimuth
+        }
+
+        Arc .. great_circle
+        
+        Vector3d .. LatLong
+        Vector3d . great_circle
+
+        great_circle . LatLong
+    }
+
+    unit_sphere::great_circle .. angle_sc::Angle
+    unit_sphere::LatLong .. angle_sc::Angle
+    unit_sphere::LatLong *- - "2" angle_sc::Degrees
+@enduml
+
+@startuml
+
+
+
+set namespaceSeparator ::
+
+    namespace unit_sphere {
+        class Arc {
+            - a
+            - pole
+            - length
+            - half_width
+        }
+
+        class Vector3d {
+            - x
+            - y
+            - z
+        }
+
+        Arc *- "2" Vector3d
+
+        class LatLong {
+            - lat
+            - lon
+        }
+
+        class great_circle {
+            + calculate_gc_distance
+            + calculate_gc_azimuth
+        }
+
+        Arc .. great_circle
+        
+        Vector3d .. LatLong
+        Vector3d . great_circle
+
+        great_circle . LatLong
+    }
+
+    unit_sphere::great_circle .. angle_sc::Angle
+    unit_sphere::LatLong .. angle_sc::Angle
+    unit_sphere::LatLong *- - "2" angle_sc::Degrees
+@enduml
+
+PlantUML version 1.2022.8(Sun Sep 25 10:00:33 BST 2022)
+(GPL source distribution)
+Java Runtime: Java(TM) SE Runtime Environment
+JVM: Java HotSpot(TM) Client VM
+Default Encoding: Cp1252
+Language: en
+Country: GB
+--></g></svg>
