@@ -24,8 +24,7 @@
 
 use crate::great_circle;
 use crate::Vector3d;
-use angle_sc::trig;
-use angle_sc::{Angle, Radians};
+use angle_sc::{trig, Angle, Radians};
 
 /// The minimum length of a vector to normalize.
 pub const MIN_LENGTH: f64 = 16384.0 * core::f64::EPSILON;
@@ -82,7 +81,7 @@ pub fn is_west_of(a: &Vector3d, b: &Vector3d) -> bool {
 
 /// Calculate the right hand pole vector of a Great Circle from an initial
 /// position and an azimuth.  
-/// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#Great%20circles>
+/// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#distance>
 /// * `lat` - start point Latitude.
 /// * `lon` - start point Longitude.
 /// * `azi` - start point azimuth.
@@ -306,36 +305,34 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
     let mut xtd = Radians(0.0);
 
     let mut sq_d = sq_distance(a, p);
-    // Point is close to start
+    // is point is close to start
     if 2.0 * SQ_EPSILON < sq_d {
         let sin_xtd = sin_xtd(pole, p);
         let abs_sin_xtd = libm::fabs(sin_xtd.0);
 
-        if abs_sin_xtd < 1.0 - 2.0 * core::f64::EPSILON {
-            // if the across track distance is significant
-            if core::f64::EPSILON < abs_sin_xtd {
+        // if the across track distance is significant
+        if core::f64::EPSILON < abs_sin_xtd {
+            // the closest point on the plane of the pole to the point
+            let plane_point = p - pole * sin_xtd.0;
+            if MIN_LENGTH < plane_point.norm() {
                 // calculate the signed great circle across track distance
                 xtd = Radians(libm::asin(sin_xtd.0));
-
-                // the closest point on the plane of the pole to the point
-                let plane_point = p - pole * sin_xtd.0;
-                sq_d = if MIN_LENGTH < plane_point.norm() {
-                    sq_distance(a, &(plane_point.normalize()))
-                } else {
-                    0.0
-                };
-            }
-            atd = Radians(libm::copysign(
-                great_circle::e2gc_distance(libm::sqrt(sq_d)).0,
-                sin_atd(a, pole, p).0,
-            ));
-        } else {
-            xtd = Radians(if 0.0 < sin_xtd.0 {
-                core::f64::consts::FRAC_PI_2
+                sq_d = sq_distance(a, &(plane_point.normalize()));
             } else {
-                -core::f64::consts::FRAC_PI_2
-            });
+                xtd = Radians(if 0.0 < sin_xtd.0 {
+                    core::f64::consts::FRAC_PI_2
+                } else {
+                    -core::f64::consts::FRAC_PI_2
+                });
+                // The point is too close to a pole for along track distance to be meaningful
+                sq_d = 0.0;
+            }
         }
+
+        atd = Radians(libm::copysign(
+            great_circle::e2gc_distance(libm::sqrt(sq_d)).0,
+            sin_atd(a, pole, p).0,
+        ));
     }
 
     (atd, xtd)
@@ -502,7 +499,6 @@ mod tests {
         let result = calculate_azimuth(&g_eq, &pole_b);
         assert_eq!(-angle_90, result);
     }
-
 
     #[test]
     fn test_calculate_position() {

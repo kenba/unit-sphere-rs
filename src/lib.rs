@@ -19,7 +19,7 @@
 // THE SOFTWARE.
 
 //! # unit-sphere
-//! 
+//!
 //! [![License](https://img.shields.io/badge/License-MIT-blue)](https://opensource.org/license/mit/)
 //! [![Rust](https://github.com/kenba/unit-sphere-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/kenba/unit-sphere-rs/actions)
 //! [![codecov](https://codecov.io/gh/kenba/unit-sphere-rs/graph/badge.svg?token=G1H1XINERW)](https://codecov.io/gh/kenba/unit-sphere-rs)
@@ -508,8 +508,7 @@ mod tests {
 
         let angle_90 = Angle::from(Degrees(90.0));
         let pole_0 = Vector3d::new(0.0, 0.0, 1.0);
-        assert!(vector::distance(&pole_0, &arc.angle_position(angle_90)) <= core ::f64::EPSILON);
-
+        assert!(vector::distance(&pole_0, &arc.angle_position(angle_90)) <= core::f64::EPSILON);
 
         let end_arc = arc.end_arc(true);
         assert_eq!(0.02, end_arc.length().0);
