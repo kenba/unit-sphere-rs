@@ -47,7 +47,7 @@
 //! latitudes and longitudes of the start and end points.  
 //! While great circle distance can also be calculated from the latitudes and
 //! longitudes of the start and end points using the
-//! [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+//! [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).  
 //! The resulting distance in `Radians` can be converted to the required units by
 //! multiplying the distance by the Earth radius measured in the required units.
 //!
@@ -60,9 +60,9 @@
 //! For example, the across track distance of a point from a great circle can
 //! be calculated from the [dot product](https://en.wikipedia.org/wiki/Dot_product)
 //! of the point and the great circle pole vectors.  
-//! While the intersection of great circles can be calculated from the
-//! [cross product](https://en.wikipedia.org/wiki/Cross_product) of their pole
-//! vectors.
+//! While intersection points of great circles can simply be calculated from
+//! the [cross product](https://en.wikipedia.org/wiki/Cross_product) of their
+//! pole vectors.
 //!
 //! ## Design
 //!
@@ -378,6 +378,43 @@ impl Arc {
     }
 }
 
+/// Calculate the distances along a pair of Arcs on the same (or reciprocal)
+/// Great Circles to their closest intersection or reference points.
+/// * `arc1`, `arc2` the arcs.
+///
+/// returns the distances along the first arc and second arc to the intersection
+/// point or to their closest (reference) points if the arcs do not intersect.
+#[must_use]
+pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Radians) {
+    vector::intersection::calculate_intersection_point_distances(
+        &arc1.a,
+        &arc1.pole,
+        arc1.length(),
+        &arc2.a,
+        &arc2.pole,
+        arc2.length(),
+    )
+}
+
+/// Calculate whether a pair of Arcs intersect and (if so) where.
+/// * `arc1`, `arc2` the arcs.
+///
+/// returns the distance along the first arc to the second arc or None if they
+/// don't intersect.
+#[must_use]
+pub fn calculate_intersection_point_distance(arc1: &Arc, arc2: &Arc) -> Option<Radians> {
+    let (distance1, distance2) = calculate_intersection_distances(arc1, arc2);
+
+    // Determine whether both distances are within both arcs
+    if (Radians(0.0)..=arc1.length()).contains(&distance1)
+        && (Radians(0.0)..=arc2.length()).contains(&distance2)
+    {
+        Some(distance1)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -556,5 +593,61 @@ mod tests {
                 2.0 * core::f64::EPSILON
             ));
         }
+    }
+
+    #[test]
+    fn test_arc_intersection_point_length() {
+        // Karney's example
+        // Istanbul, Washington, Reyjavik and Accra
+        let istanbul = LatLong::new(Degrees(42.0), Degrees(29.0));
+        let washington = LatLong::new(Degrees(39.0), Degrees(-77.0));
+        let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
+        let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
+
+        let arc1 = Arc::between_positions(&istanbul, &washington);
+        let arc2 = Arc::between_positions(&reyjavik, &accra);
+
+        let intersection_distance = calculate_intersection_point_distance(&arc1, &arc2).unwrap();
+        assert!(is_within_tolerance(
+            0.5406004765152588,
+            intersection_distance.0,
+            core::f64::EPSILON
+        ));
+
+        let intersection_distance_other_arc =
+            calculate_intersection_point_distance(&arc2, &arc1).unwrap();
+        assert!(is_within_tolerance(
+            0.17553891720631054,
+            intersection_distance_other_arc.0,
+            core::f64::EPSILON
+        ));
+
+        let intersection_pos = arc1.position(intersection_distance);
+        let lat_long = LatLong::from(&intersection_pos);
+        // Geodesic intersection latitude is 54.7170296111
+        assert!(is_within_tolerance(54.7, lat_long.lat().0, 0.4));
+        // Geodesic intersection longitude is -14.56385575
+        assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
+    }
+
+    #[test]
+    fn test_arc_intersection_same_gerat_circles() {
+        let south_pole_1 = LatLong::new(Degrees(-88.0), Degrees(-180.0));
+        let south_pole_2 = LatLong::new(Degrees(-87.0), Degrees(0.0));
+
+        let arc1 = Arc::between_positions(&south_pole_1, &south_pole_2);
+
+        let intersection_lengths = calculate_intersection_distances(&arc1, &arc1);
+        assert_eq!(Radians(0.0), intersection_lengths.0);
+        assert_eq!(Radians(0.0), intersection_lengths.1);
+
+        let gc_length = calculate_intersection_point_distance(&arc1, &arc1).unwrap();
+        assert_eq!(Radians(0.0), gc_length);
+
+        let south_pole_3 = LatLong::new(Degrees(-85.0), Degrees(0.0));
+        let south_pole_4 = LatLong::new(Degrees(-86.0), Degrees(0.0));
+        let arc2 = Arc::between_positions(&south_pole_3, &south_pole_4);
+        let intersection_length = calculate_intersection_point_distance(&arc1, &arc2);
+        assert!(intersection_length.is_none());
     }
 }

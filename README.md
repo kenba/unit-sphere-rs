@@ -27,7 +27,7 @@ The [course](https://en.wikipedia.org/wiki/Great-circle_navigation#Course)
 latitudes and longitudes of the start and end points.  
 While great circle distance can also be calculated from the latitudes and
 longitudes of the start and end points using the
-[haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+[haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).  
 The resulting distance in `Radians` can be converted to the required units by multiplying the distance by the Earth radius measured in the required units.
 
 ## Vector geometry
@@ -42,9 +42,9 @@ Many calculations are simpler using vectors than spherical trigonometry.
 For example, the across track distance of a point from a great circle can
 be calculated from the [dot product](https://en.wikipedia.org/wiki/Dot_product)
 of the point and the great circle pole vectors.
-While the intersection of great circles can be calculated from the
-[cross product](https://en.wikipedia.org/wiki/Cross_product) of their pole
-vectors.
+While the intersection points of great circles can simply be calculated from
+the [cross product](https://en.wikipedia.org/wiki/Cross_product) of their
+pole vectors.
 
 ## Design
 

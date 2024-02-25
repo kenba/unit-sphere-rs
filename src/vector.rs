@@ -26,6 +26,8 @@ use crate::great_circle;
 use crate::Vector3d;
 use angle_sc::{is_small, trig, Angle, Radians};
 
+pub mod intersection;
+
 /// The minimum length of a vector to normalize.
 pub const MIN_LENGTH: f64 = 16384.0 * core::f64::EPSILON;
 
@@ -247,7 +249,7 @@ fn calculate_point_on_plane(pole: &Vector3d, point: &Vector3d) -> Vector3d {
 #[must_use]
 pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {
     let plane_point = calculate_point_on_plane(pole, point);
-    if plane_point.norm() < MIN_LENGTH {
+    if is_small(plane_point.norm(), MIN_NORM) {
         0.0
     } else {
         sq_distance(a, &(plane_point.normalize()))
@@ -314,82 +316,30 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
         if core::f64::EPSILON < abs_sin_xtd {
             // the closest point on the plane of the pole to the point
             let plane_point = p - pole * sin_xtd.0;
-            if MIN_LENGTH < plane_point.norm() {
-                // calculate the signed great circle across track distance
-                xtd = Radians(libm::asin(sin_xtd.0));
-                sq_d = sq_distance(a, &(plane_point.normalize()));
-            } else {
+            if is_small(plane_point.norm(), MIN_NORM) {
+                // The point is too close to a pole to measure
                 xtd = Radians(if 0.0 < sin_xtd.0 {
                     core::f64::consts::FRAC_PI_2
                 } else {
                     -core::f64::consts::FRAC_PI_2
                 });
-                // The point is too close to a pole for along track distance to be meaningful
                 sq_d = 0.0;
+            } else {
+                // calculate the signed great circle across track distance
+                xtd = Radians(libm::asin(sin_xtd.0));
+                sq_d = sq_distance(a, &(plane_point.normalize()));
             }
         }
 
-        atd = Radians(libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_d)).0,
-            sin_atd(a, pole, p).0,
-        ));
+        if sq_d > 0.0 {
+            atd = Radians(libm::copysign(
+                great_circle::e2gc_distance(libm::sqrt(sq_d)).0,
+                sin_atd(a, pole, p).0,
+            ));
+        }
     }
 
     (atd, xtd)
-}
-
-/// Calculate an intersection point between the poles of two Great Circles.  
-/// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>  
-/// * `pole1`, `pole2` the poles.
-///
-/// return an intersection point or None if the poles are the same (or opposing) Great Circles.
-#[must_use]
-pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
-    let c = pole1.cross(pole2);
-    if is_small(c.norm(), MIN_NORM) {
-        None
-    } else {
-        Some(c.normalize())
-    }
-}
-
-/// Calculate the great circle distances to an intersection point from the
-/// start points of a pair of great circle arcs, on different great circles.
-/// * `a1`, `a2` the start points of the great circle arcs
-/// * `pole1`, `pole2` the poles of the great circle arcs
-/// * `c` the intersection point
-///
-/// returns a pair of great circle distances along the arcs to the
-/// intersection point in Radians.
-#[must_use]
-pub fn calculate_intersection_distances(
-    a1: &Vector3d,
-    pole1: &Vector3d,
-    a2: &Vector3d,
-    pole2: &Vector3d,
-    c: &Vector3d,
-) -> (Radians, Radians) {
-    let sq_d_a1c = sq_distance(a1, c);
-    let gc_d_a1c = if sq_d_a1c < 2.0 * SQ_EPSILON {
-        0.0
-    } else {
-        libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_d_a1c)).0,
-            sin_atd(a1, pole1, c).0,
-        )
-    };
-
-    let sq_d_a2c = sq_distance(a2, c);
-    let gc_d_a2c = if sq_d_a2c < 2.0 * SQ_EPSILON {
-        0.0
-    } else {
-        libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_d_a2c)).0,
-            sin_atd(a2, pole2, c).0,
-        )
-    };
-
-    (Radians(gc_d_a1c), Radians(gc_d_a2c))
 }
 
 #[cfg(test)]
@@ -697,78 +647,5 @@ mod tests {
             xtd.0,
             0.000001
         ));
-    }
-
-    #[test]
-    fn test_calculate_intersection_points() {
-        let lat_lon_south = LatLong::new(Degrees(-90.0), Degrees(0.0));
-        let south_pole = Vector3d::from(&lat_lon_south);
-
-        let lat_lon_north = LatLong::new(Degrees(90.0), Degrees(0.0));
-        let north_pole = Vector3d::from(&lat_lon_north);
-
-        let lat_lon_idl = LatLong::new(Degrees(0.0), Degrees(180.0));
-        let idl = Vector3d::from(&lat_lon_idl);
-
-        let equator_intersection = calculate_intersection_point(&south_pole, &north_pole);
-        assert!(equator_intersection.is_none());
-
-        let gc_intersection1 = calculate_intersection_point(&idl, &north_pole).unwrap();
-        let gc_intersection2 = calculate_intersection_point(&idl, &south_pole).unwrap();
-
-        assert_eq!(gc_intersection1, -gc_intersection2);
-    }
-
-    #[test]
-    fn test_calculate_intersection_distances() {
-        let start1 = LatLong::new(Degrees(-1.0), Degrees(-1.0));
-        let a1 = Vector3d::from(&start1);
-        let azimuth1 = Angle::from(Degrees(45.0));
-        let pole1 = calculate_pole(
-            Angle::from(start1.lat()),
-            Angle::from(start1.lon()),
-            azimuth1,
-        );
-
-        let start2 = LatLong::new(Degrees(1.0), Degrees(-1.0));
-        let a2 = Vector3d::from(&start2);
-        let azimuth2 = Angle::from(Degrees(135.0));
-        let pole2 = calculate_pole(
-            Angle::from(start2.lat()),
-            Angle::from(start2.lon()),
-            azimuth2,
-        );
-
-        let c = calculate_intersection_point(&pole1, &pole2).unwrap();
-        let (c1, c2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &c);
-        assert!(is_within_tolerance(
-            -3.1169124762478333,
-            c1.0,
-            core::f64::EPSILON
-        ));
-        assert!(is_within_tolerance(
-            -3.1169124762478333,
-            c2.0,
-            core::f64::EPSILON
-        ));
-
-        // opposite intersection point
-        let d = -c;
-        let (d1, d2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &d);
-        assert!(is_within_tolerance(
-            0.024680177341956263,
-            d1.0,
-            core::f64::EPSILON
-        ));
-        assert!(is_within_tolerance(
-            0.024680177341956263,
-            d2.0,
-            core::f64::EPSILON
-        ));
-
-        // Same start points and intersection point
-        let (e1, e2) = calculate_intersection_distances(&a1, &pole1, &a1, &pole2, &a1);
-        assert_eq!(0.0, e1.0);
-        assert_eq!(0.0, e2.0);
     }
 }
