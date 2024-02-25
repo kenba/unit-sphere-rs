@@ -20,6 +20,8 @@
 
 //! # unit-sphere
 //!
+//! [![crates.io](https://img.shields.io/crates/v/unit-sphere.svg)](https://crates.io/crates/unit-sphere)
+//! [![docs.io](https://docs.rs/unit-sphere/badge.svg)](https://docs.rs/unit-sphere/)
 //! [![License](https://img.shields.io/badge/License-MIT-blue)](https://opensource.org/license/mit/)
 //! [![Rust](https://github.com/kenba/unit-sphere-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/kenba/unit-sphere-rs/actions)
 //! [![codecov](https://codecov.io/gh/kenba/unit-sphere-rs/graph/badge.svg?token=G1H1XINERW)](https://codecov.io/gh/kenba/unit-sphere-rs)

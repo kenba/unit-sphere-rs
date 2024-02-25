@@ -3,13 +3,14 @@ name = "unit-sphere"
 version = "0.1.0"
 authors = ["Ken Barker <ken.barker@via-technology.aero>"]
 description = "A library for performing geometric calculations on the surface of a sphere."
+documentation = "https://docs.rs/unit-sphere/"
+homepage = "https://github.com/kenba/unit-sphere-rs"
 repository = "https://github.com/kenba/unit-sphere-rs"
 readme = "README.md"
-keywords = ["geometry", "sphere"]
-categories = ["mathematics", "no-std"]
+keywords = ["geometry", "navigation" , "sphere"]
+categories = ["mathematics", "no-std", "science"]
 license = "MIT"
 edition = "2021"
-publish = false
 
 [dependencies]
 angle-sc = "0.1"
