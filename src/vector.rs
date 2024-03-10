@@ -34,6 +34,34 @@ pub const MIN_LENGTH: f64 = 16384.0 * core::f64::EPSILON;
 /// The minimum norm of a vector to normalize.
 pub const MIN_NORM: f64 = MIN_LENGTH * MIN_LENGTH;
 
+/// Convert a latitude and longitude to a point on the unit sphere.
+/// @pre |lat| <= 90.0 degrees.
+/// * `lat` - the latitude.
+/// * `lon` - the longitude.
+///
+/// returns a `Vector3d` of the point on the unit sphere.
+#[must_use]
+pub fn to_point(lat: Angle, lon: Angle) -> Vector3d {
+    Vector3d::new(
+        lat.cos().0 * lon.cos().0,
+        lat.cos().0 * lon.sin().0,
+        lat.sin().0,
+    )
+}
+
+/// Calculate the latitude of a point.
+#[must_use]
+pub fn latitude(a: &Vector3d) -> Angle {
+    let sin_a = trig::UnitNegRange(a.z);
+    Angle::new(sin_a, trig::swap_sin_cos(sin_a))
+}
+
+/// Calculate the longitude of a point.
+#[must_use]
+pub fn longitude(a: &Vector3d) -> Angle {
+    Angle::from_y_x(a.y, a.x)
+}
+
 /// Determine whether a `Vector3d` is a unit vector.
 ///
 /// returns true if `Vector3d` is a unit vector, false otherwise.
@@ -68,6 +96,18 @@ pub fn are_orthogonal(a: &Vector3d, b: &Vector3d) -> bool {
     const MAX_LENGTH: f64 = 4.0 * core::f64::EPSILON;
 
     (-MAX_LENGTH..=MAX_LENGTH).contains(&(a.dot(b)))
+}
+
+/// Calculate the relative longitude of point a from point b.
+/// * `a`, `b` - the points.
+///
+/// returns the relative longitude of point a from point b,
+/// negative if a is West of b, positive otherwise.
+#[must_use]
+pub fn delta_longitude(a: &Vector3d, b: &Vector3d) -> Angle {
+    let a_lon = a.xy();
+    let b_lon = b.xy();
+    Angle::from_y_x(b_lon.perp(&a_lon), b_lon.dot(&a_lon))
 }
 
 /// Determine whether point a is West of point b.  
@@ -346,13 +386,16 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
 mod tests {
     use super::*;
     use crate::LatLong;
-    use angle_sc::{is_within_tolerance, Degrees};
+    use angle_sc::{is_within_tolerance, Degrees, Radians};
 
     #[test]
     fn test_point_lat_longs() {
         // Test South pole
         let lat_lon_south = LatLong::new(Degrees(-90.0), Degrees(180.0));
         let point_south = Vector3d::from(&lat_lon_south);
+
+        assert_eq!(Degrees(-90.0), Degrees::from(latitude(&point_south)));
+        assert_eq!(Degrees(0.0), Degrees::from(longitude(&point_south)));
 
         let result = LatLong::from(&point_south);
         assert_eq!(-90.0, result.lat().0);
@@ -369,32 +412,59 @@ mod tests {
         let lat_lon_0_180 = LatLong::new(Degrees(0.0), Degrees(180.0));
         let point_1 = Vector3d::from(&lat_lon_0_180);
         assert!(is_unit(&point_1));
-        assert_eq!(lat_lon_0_180, LatLong::from(&point_1));
         assert_eq!(false, is_west_of(&point_0, &point_1));
+        assert_eq!(
+            core::f64::consts::PI,
+            libm::fabs(Radians::from(delta_longitude(&point_0, &point_1)).0)
+        );
 
         let lat_lon_0_m180 = LatLong::new(Degrees(0.0), Degrees(-180.0));
         let point_2 = Vector3d::from(&lat_lon_0_m180);
         assert!(is_unit(&point_2));
         // Converts back to +ve longitude
         assert_eq!(lat_lon_0_180, LatLong::from(&point_2));
+
         assert_eq!(false, is_west_of(&point_0, &point_2));
+        assert_eq!(
+            -core::f64::consts::PI,
+            Radians::from(delta_longitude(&point_0, &point_2)).0
+        );
 
         let lat_lon_0_r3 = LatLong::new(Degrees(0.0), Degrees(3.0_f64.to_degrees()));
         let point_3 = Vector3d::from(&lat_lon_0_r3);
         assert!(is_unit(&point_3));
         let result = LatLong::from(&point_3);
         assert_eq!(0.0, result.lat().0);
+        assert_eq!(3.0_f64, Radians::from(delta_longitude(&point_3, &point_0)).0);
         assert_eq!(3.0_f64.to_degrees(), result.lon().0);
         assert!(is_west_of(&point_0, &point_3));
+        assert_eq!(
+            -3.0,
+            Radians::from(delta_longitude(&point_0, &point_3)).0
+        );
+
         assert_eq!(false, is_west_of(&point_1, &point_3));
+        assert_eq!(
+            core::f64::consts::PI - 3.0,
+            Radians::from(delta_longitude(&point_1, &point_3)).0
+        );
 
         let lat_lon_0_mr3 = LatLong::new(Degrees(0.0), Degrees(-3.0_f64.to_degrees()));
         let point_4 = Vector3d::from(&lat_lon_0_mr3);
         assert!(is_unit(&point_4));
+        assert_eq!(
+            3.0,
+            Radians::from(delta_longitude(&point_0, &point_4)).0
+        );
+
         let result = LatLong::from(&point_4);
         assert_eq!(0.0, result.lat().0);
         assert_eq!(-3.0_f64.to_degrees(), result.lon().0);
         assert!(is_west_of(&point_1, &point_4));
+        assert_eq!(
+            3.0 - core::f64::consts::PI,
+            Radians::from(delta_longitude(&point_1, &point_4)).0
+        );
     }
 
     #[test]

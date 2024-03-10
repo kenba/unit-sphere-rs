@@ -180,14 +180,7 @@ impl From<&LatLong> for Vector3d {
     /// returns a `Vector3d` of the point on the unit sphere.
     #[must_use]
     fn from(a: &LatLong) -> Self {
-        let a_lat = Angle::from(a.lat);
-        let a_lon = Angle::from(a.lon);
-
-        Self::new(
-            a_lat.cos().0 * a_lon.cos().0,
-            a_lat.cos().0 * a_lon.sin().0,
-            a_lat.sin().0,
-        )
+        vector::to_point(Angle::from(a.lat), Angle::from(a.lon))
     }
 }
 
