@@ -38,7 +38,7 @@
 //! The tricky part is choosing which of the two intersection points to use.  
 //! Most of the functions in this module perform that task.
 
-use super::{distance, sin_atd, sq_distance, Vector3d, MIN_NORM, SQ_EPSILON};
+use super::{distance, sin_atd, sq_distance, Vector3d, MIN_NORM, MIN_SQ_DISTANCE};
 use crate::great_circle;
 use angle_sc::{is_small, max, Radians};
 
@@ -74,7 +74,7 @@ pub fn calculate_intersection_distances(
     c: &Vector3d,
 ) -> (Radians, Radians) {
     let sq_d_a1c = sq_distance(a1, c);
-    let gc_d_a1c = if sq_d_a1c < 2.0 * SQ_EPSILON {
+    let gc_d_a1c = if is_small(sq_d_a1c, MIN_SQ_DISTANCE) {
         0.0
     } else {
         libm::copysign(
@@ -84,7 +84,7 @@ pub fn calculate_intersection_distances(
     };
 
     let sq_d_a2c = sq_distance(a2, c);
-    let gc_d_a2c = if sq_d_a2c < 2.0 * SQ_EPSILON {
+    let gc_d_a2c = if is_small(sq_d_a2c, MIN_SQ_DISTANCE) {
         0.0
     } else {
         libm::copysign(
@@ -306,7 +306,7 @@ pub fn calculate_intersection_point_distances(
 ) -> (Radians, Radians) {
     // Calculate the great circle distance between the start points.
     let gc_d = great_circle::e2gc_distance(distance(a1, a2));
-    if gc_d.0 <= 2.0 * core::f64::EPSILON {
+    if is_small(gc_d.0, great_circle::MIN_VALUE) {
         (Radians(0.0), Radians(0.0))
     } else {
         calculate_intersection_point(pole1, pole2).map_or_else(

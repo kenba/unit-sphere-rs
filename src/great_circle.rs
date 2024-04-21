@@ -22,7 +22,10 @@
 //! and distance between points along great circles on a unit sphere.
 
 use angle_sc::trig;
-use angle_sc::{clamp, Angle, Radians};
+use angle_sc::{clamp, is_small, Angle, Radians};
+
+/// The minimum value for angles and distances.
+pub const MIN_VALUE: f64 = 2.0 * core::f64::EPSILON;
 
 /// Calculate the Great Circle distance (angle from centre) between two points
 /// from their Latitudes and their Longitude difference.
@@ -44,14 +47,22 @@ pub fn calculate_haversine_distance(a_lat: Angle, b_lat: Angle, delta_long: Angl
         1.0,
     );
 
-    Radians(2.0 * libm::asin(libm::sqrt(a)))
+    if is_small(a, MIN_VALUE) {
+        Radians(0.0)
+    } else {
+        Radians(2.0 * libm::asin(libm::sqrt(a)))
+    }
 }
 
 /// Convert a Euclidean distance to a Great Circle distance (in `Radians`).
 /// e should satisfy: 0 <= e <= 2, if not it is clamped into range.
 #[must_use]
 pub fn e2gc_distance(e: f64) -> Radians {
-    Radians(2.0 * libm::asin(trig::UnitNegRange::clamp(0.5 * e).0))
+    if is_small(e, MIN_VALUE) {
+        Radians(0.0)
+    } else {
+        Radians(2.0 * libm::asin(trig::UnitNegRange::clamp(0.5 * e).0))
+    }
 }
 
 /// Convert a Great Circle distance (in radians) to a Euclidean distance.
@@ -100,16 +111,27 @@ pub fn calculate_gc_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> R
 /// as an Angle.
 #[must_use]
 pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
-    let sin_azimuth = b_lat.cos().0 * delta_long.sin().0;
-    let temp = (a_lat.sin().0 * b_lat.cos().0 * delta_long.sin().0 * delta_long.sin().0)
-        / (1.0 + libm::fabs(delta_long.cos().0));
-    let cos_azimuth = if delta_long.cos().0 < 0.0 {
-        b_lat.sin().0 * a_lat.cos().0 + a_lat.sin().0 * b_lat.cos().0 - temp
+    // if start point is North or South pole
+    if is_small(a_lat.cos().0, MIN_VALUE) {
+        if a_lat.sin().0 < 0.0 {
+            // South pole, azimuth is zero
+            Angle::default()
+        } else {
+            // North pole, azimuth is 180 degrees
+            Angle::default().opposite()
+        }
     } else {
-        b_lat.sin().0 * a_lat.cos().0 - a_lat.sin().0 * b_lat.cos().0 + temp
-    };
+        let sin_azimuth = b_lat.cos().0 * delta_long.sin().0;
+        let temp = (a_lat.sin().0 * b_lat.cos().0 * delta_long.sin().0 * delta_long.sin().0)
+            / (1.0 + libm::fabs(delta_long.cos().0));
+        let cos_azimuth = if delta_long.cos().0 < 0.0 {
+            b_lat.sin().0 * a_lat.cos().0 + a_lat.sin().0 * b_lat.cos().0 - temp
+        } else {
+            b_lat.sin().0 * a_lat.cos().0 - a_lat.sin().0 * b_lat.cos().0 + temp
+        };
 
-    Angle::from_y_x(sin_azimuth, cos_azimuth)
+        Angle::from_y_x(sin_azimuth, cos_azimuth)
+    }
 }
 
 #[cfg(test)]
@@ -152,5 +174,31 @@ mod tests {
             Degrees::from(gc_azimuth).0,
             32.0 * std::f64::EPSILON
         ));
+
+        let gc_distance = calculate_gc_distance(angle_45, angle_45, angle_0);
+        assert_eq!(0.0, gc_distance.0);
+        let haversine_distance = calculate_haversine_distance(angle_45, angle_45, angle_0);
+        assert!(is_small(haversine_distance.0, 2.11e-8));
+
+        let gc_azimuth = calculate_gc_azimuth(angle_45, angle_45, angle_0);
+        assert_eq!(0.0, Degrees::from(gc_azimuth).0);
+    }
+
+    #[test]
+    fn test_north_and_south_pole_azimuths() {
+        let angle_90 = Angle::new(trig::UnitNegRange(1.0), trig::UnitNegRange(0.0));
+        let angle_m90 = -angle_90;
+
+        let angle_0 = Angle::default();
+        let angle_45 = Angle::from_y_x(1.0, 1.0);
+        let angle_180 = Angle::new(trig::UnitNegRange(0.0), trig::UnitNegRange(-1.0));
+
+        // From South Pole
+        let gc_azimuth = calculate_gc_azimuth(angle_m90, angle_45, angle_0);
+        assert_eq!(angle_0, gc_azimuth);
+
+        // From North Pole
+        let gc_azimuth = calculate_gc_azimuth(angle_90, angle_45, angle_0);
+        assert_eq!(angle_180, gc_azimuth);
     }
 }

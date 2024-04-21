@@ -28,6 +28,9 @@ use angle_sc::{is_small, trig, Angle, Radians};
 
 pub mod intersection;
 
+/// The minimum value of the square of distance.
+pub const MIN_SQ_DISTANCE: f64 = great_circle::MIN_VALUE * great_circle::MIN_VALUE;
+
 /// The minimum length of a vector to normalize.
 pub const MIN_LENGTH: f64 = 16384.0 * core::f64::EPSILON;
 
@@ -149,7 +152,7 @@ pub fn calculate_pole(lat: Angle, lon: Angle, azi: Angle) -> Vector3d {
 /// returns the azimuth at the point on the great circle.
 #[must_use]
 pub fn calculate_azimuth(point: &Vector3d, pole: &Vector3d) -> Angle {
-    const MAX_LAT: f64 = 1.0 - 2.0 * core::f64::EPSILON;
+    const MAX_LAT: f64 = 1.0 - great_circle::MIN_VALUE;
 
     let sin_lat = point.z;
     // if the point is close to the North or South poles, azimuth is 180 or 0.
@@ -261,7 +264,7 @@ pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
 #[must_use]
 pub fn sq_cross_track_distance(pole: &Vector3d, point: &Vector3d) -> f64 {
     let sin_d = libm::fabs(sin_xtd(pole, point).0);
-    if sin_d < 2.0 * core::f64::EPSILON {
+    if sin_d < great_circle::MIN_VALUE {
         0.0
     } else {
         2.0 * (1.0 - trig::swap_sin_cos(trig::UnitNegRange(sin_d)).0)
@@ -289,10 +292,17 @@ fn calculate_point_on_plane(pole: &Vector3d, point: &Vector3d) -> Vector3d {
 #[must_use]
 pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {
     let plane_point = calculate_point_on_plane(pole, point);
+    // if point is close to a pole
     if is_small(plane_point.norm(), MIN_NORM) {
         0.0
     } else {
-        sq_distance(a, &(plane_point.normalize()))
+        // if point is close to start point, a
+        let sq_d = sq_distance(a, &(plane_point.normalize()));
+        if is_small(sq_d, MIN_SQ_DISTANCE) {
+            0.0
+        } else {
+            sq_d
+        }
     }
 }
 
@@ -310,9 +320,6 @@ pub fn sin_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> trig::UnitNeg
     trig::UnitNegRange::clamp(pole.cross(a).dot(point))
 }
 
-/// The square of `core::f64::EPSILON`.
-pub const SQ_EPSILON: f64 = core::f64::EPSILON * core::f64::EPSILON;
-
 /// The Great Circle distance of a point along the arc relative to a,
 /// (+ve) ahead of a, (-ve) behind a.
 /// * `a` - the start point of the Great Circle arc.
@@ -323,7 +330,7 @@ pub const SQ_EPSILON: f64 = core::f64::EPSILON * core::f64::EPSILON;
 #[must_use]
 pub fn along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> Radians {
     let sq_atd = sq_along_track_distance(a, pole, point);
-    if sq_atd <= SQ_EPSILON {
+    if is_small(sq_atd, MIN_SQ_DISTANCE) {
         Radians(0.0)
     } else {
         Radians(libm::copysign(
@@ -347,13 +354,13 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
     let mut xtd = Radians(0.0);
 
     let mut sq_d = sq_distance(a, p);
-    // is point is close to start
-    if 2.0 * SQ_EPSILON < sq_d {
+    // is point is not close to start
+    if !is_small(sq_d, MIN_SQ_DISTANCE) {
         let sin_xtd = sin_xtd(pole, p);
         let abs_sin_xtd = libm::fabs(sin_xtd.0);
 
         // if the across track distance is significant
-        if core::f64::EPSILON < abs_sin_xtd {
+        if great_circle::MIN_VALUE < abs_sin_xtd {
             // the closest point on the plane of the pole to the point
             let plane_point = p - pole * sin_xtd.0;
             if is_small(plane_point.norm(), MIN_NORM) {
@@ -371,7 +378,7 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
             }
         }
 
-        if sq_d > 0.0 {
+        if !is_small(sq_d, MIN_SQ_DISTANCE) {
             atd = Radians(libm::copysign(
                 great_circle::e2gc_distance(libm::sqrt(sq_d)).0,
                 sin_atd(a, pole, p).0,
@@ -435,13 +442,13 @@ mod tests {
         assert!(is_unit(&point_3));
         let result = LatLong::from(&point_3);
         assert_eq!(0.0, result.lat().0);
-        assert_eq!(3.0_f64, Radians::from(delta_longitude(&point_3, &point_0)).0);
+        assert_eq!(
+            3.0_f64,
+            Radians::from(delta_longitude(&point_3, &point_0)).0
+        );
         assert_eq!(3.0_f64.to_degrees(), result.lon().0);
         assert!(is_west_of(&point_0, &point_3));
-        assert_eq!(
-            -3.0,
-            Radians::from(delta_longitude(&point_0, &point_3)).0
-        );
+        assert_eq!(-3.0, Radians::from(delta_longitude(&point_0, &point_3)).0);
 
         assert_eq!(false, is_west_of(&point_1, &point_3));
         assert_eq!(
@@ -452,10 +459,7 @@ mod tests {
         let lat_lon_0_mr3 = LatLong::new(Degrees(0.0), Degrees(-3.0_f64.to_degrees()));
         let point_4 = Vector3d::from(&lat_lon_0_mr3);
         assert!(is_unit(&point_4));
-        assert_eq!(
-            3.0,
-            Radians::from(delta_longitude(&point_0, &point_4)).0
-        );
+        assert_eq!(3.0, Radians::from(delta_longitude(&point_0, &point_4)).0);
 
         let result = LatLong::from(&point_4);
         assert_eq!(0.0, result.lat().0);

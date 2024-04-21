@@ -82,7 +82,7 @@ extern crate nalgebra as na;
 pub mod great_circle;
 pub mod vector;
 
-use angle_sc::trig;
+use angle_sc::{is_small, trig};
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 
 /// Test whether a latitude in degrees is a valid latitude.  
@@ -209,6 +209,7 @@ impl From<&Vector3d> for LatLong {
 }
 
 /// An arc of a Great Circle on a unit sphere.
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Arc {
     /// The start point of the arc.
     a: Vector3d,
@@ -269,7 +270,14 @@ impl Arc {
     #[must_use]
     pub fn between_positions(a: &LatLong, b: &LatLong) -> Self {
         let (azimuth, length) = calculate_azimuth_and_distance(a, b);
-        Self::from_lat_lon_azi_length(a, azimuth, length)
+        let a_lat = Angle::from(a.lat());
+        // if a is at the North or South pole
+        if is_small(a_lat.cos().0, great_circle::MIN_VALUE) {
+            // use b's longitude
+            Self::from_lat_lon_azi_length(&LatLong::new(a.lat(), b.lon()), azimuth, length)
+        } else {
+            Self::from_lat_lon_azi_length(a, azimuth, length)
+        }
     }
 
     /// Set the `half_width` of an Arc
@@ -354,11 +362,11 @@ impl Arc {
     pub fn end_arc(&self, at_b: bool) -> Self {
         let p = if at_b { self.b() } else { self.a };
         let pole = vector::direction(&p, &self.pole);
-        if core::f64::EPSILON < self.half_width.0 {
+        if is_small(self.half_width.0, great_circle::MIN_VALUE) {
+            Self::new(p, pole, Radians(0.0), Radians(0.0))
+        } else {
             let a = self.perp_position(&p, self.half_width);
             Self::new(a, pole, self.half_width + self.half_width, Radians(0.0))
-        } else {
-            Self::new(p, pole, Radians(0.0), Radians(0.0))
         }
     }
 
@@ -370,6 +378,33 @@ impl Arc {
     #[must_use]
     pub fn calculate_atd_and_xtd(&self, point: &Vector3d) -> (Radians, Radians) {
         vector::calculate_atd_and_xtd(&self.a, &self.pole(), point)
+    }
+}
+
+impl TryFrom<(&LatLong, &LatLong)> for Arc {
+    type Error = &'static str;
+
+    /// Construct an Arc from a pair of positions.  
+    /// * `params` - the start and end positions
+    fn try_from(params: (&LatLong, &LatLong)) -> Result<Self, Self::Error> {
+        // Convert positions to vectors
+        let a = Vector3d::from(params.0);
+        let b = Vector3d::from(params.1);
+        let pole = a.cross(&b);
+        if is_small(pole.norm(), vector::MIN_NORM) {
+            if vector::sq_distance(&a, &b) < 1.0 {
+                Err("Positions are too close")
+            } else {
+                Err("Positions are antipodal")
+            }
+        } else {
+            Ok(Self::new(
+                a,
+                pole.normalize(),
+                great_circle::e2gc_distance(vector::distance(&a, &b)),
+                Radians(0.0),
+            ))
+        }
     }
 }
 
@@ -485,9 +520,23 @@ mod tests {
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             dist.0,
-            48.0 * core::f64::EPSILON
+            core::f64::EPSILON
         ));
         assert_eq!(180.0, Degrees::from(azimuth).0);
+    }
+
+    #[test]
+    fn test_great_circle_90s_0n_50e() {
+        let a = LatLong::new(Degrees(-90.0), Degrees(0.0));
+        let b = LatLong::new(Degrees(0.0), Degrees(50.0));
+        let (azimuth, dist) = calculate_azimuth_and_distance(&a, &b);
+
+        assert!(is_within_tolerance(
+            core::f64::consts::FRAC_PI_2,
+            dist.0,
+            core::f64::EPSILON
+        ));
+        assert_eq!(0.0, Degrees::from(azimuth).0);
     }
 
     #[test]
@@ -550,6 +599,91 @@ mod tests {
     }
 
     #[test]
+    fn test_north_and_south_poles() {
+        let north_pole = LatLong::new(Degrees(90.0), Degrees(0.0));
+        let south_pole = LatLong::new(Degrees(-90.0), Degrees(0.0));
+
+        let (azimuth, distance) = calculate_azimuth_and_distance(&south_pole, &north_pole);
+        assert_eq!(0.0, Degrees::from(azimuth).0);
+        assert_eq!(core::f64::consts::PI, distance.0);
+
+        let (azimuth, distance) = calculate_azimuth_and_distance(&north_pole, &south_pole);
+        assert_eq!(180.0, Degrees::from(azimuth).0);
+        assert_eq!(core::f64::consts::PI, distance.0);
+
+        // 90 degrees East on the equator
+        let e_eq = LatLong::new(Degrees(0.0), Degrees(50.0));
+
+        let arc = Arc::between_positions(&north_pole, &e_eq);
+        assert!(is_within_tolerance(
+            e_eq.lat().0,
+            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            1e-13
+        ));
+        assert!(is_within_tolerance(
+            e_eq.lon().0,
+            LatLong::from(&arc.b()).lon().0,
+            50.0 * core::f64::EPSILON
+        ));
+
+        let arc = Arc::between_positions(&south_pole, &e_eq);
+        assert!(is_within_tolerance(
+            e_eq.lat().0,
+            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            1e-13
+        ));
+        assert!(is_within_tolerance(
+            e_eq.lon().0,
+            LatLong::from(&arc.b()).lon().0,
+            50.0 * core::f64::EPSILON
+        ));
+
+        let w_eq = LatLong::new(Degrees(0.0), Degrees(-140.0));
+
+        let arc = Arc::between_positions(&north_pole, &w_eq);
+        assert!(is_within_tolerance(
+            w_eq.lat().0,
+            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            1e-13
+        ));
+        assert!(is_within_tolerance(
+            w_eq.lon().0,
+            LatLong::from(&arc.b()).lon().0,
+            256.0 * core::f64::EPSILON
+        ));
+
+        let arc = Arc::between_positions(&south_pole, &w_eq);
+        assert!(is_within_tolerance(
+            w_eq.lat().0,
+            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            1e-13
+        ));
+        assert!(is_within_tolerance(
+            w_eq.lon().0,
+            LatLong::from(&arc.b()).lon().0,
+            256.0 * core::f64::EPSILON
+        ));
+
+        let invalid_arc = Arc::try_from((&north_pole, &north_pole));
+        assert_eq!(Err("Positions are too close"), invalid_arc);
+
+        let arc = Arc::between_positions(&north_pole, &north_pole);
+        assert_eq!(north_pole, LatLong::from(&arc.b()));
+
+        let invalid_arc = Arc::try_from((&north_pole, &south_pole));
+        assert_eq!(Err("Positions are antipodal"), invalid_arc);
+
+        let arc = Arc::between_positions(&north_pole, &south_pole);
+        assert_eq!(south_pole, LatLong::from(&arc.b()));
+
+        let arc = Arc::between_positions(&south_pole, &north_pole);
+        assert_eq!(north_pole, LatLong::from(&arc.b()));
+
+        let arc = Arc::between_positions(&south_pole, &south_pole);
+        assert_eq!(south_pole, LatLong::from(&arc.b()));
+    }
+
+    #[test]
     fn test_arc_atd_and_xtd() {
         // Greenwich equator
         let g_eq = LatLong::new(Degrees(0.0), Degrees(0.0));
@@ -557,7 +691,7 @@ mod tests {
         // 90 degrees East on the equator
         let e_eq = LatLong::new(Degrees(0.0), Degrees(90.0));
 
-        let arc = Arc::between_positions(&g_eq, &e_eq);
+        let arc = Arc::try_from((&g_eq, &e_eq)).unwrap();
         assert!(arc.is_valid());
 
         let start_arc = arc.end_arc(false);
@@ -599,8 +733,8 @@ mod tests {
         let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
         let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
 
-        let arc1 = Arc::between_positions(&istanbul, &washington);
-        let arc2 = Arc::between_positions(&reyjavik, &accra);
+        let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
+        let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
 
         let intersection_distance = calculate_intersection_point_distance(&arc1, &arc2).unwrap();
         assert!(is_within_tolerance(
@@ -630,7 +764,7 @@ mod tests {
         let south_pole_1 = LatLong::new(Degrees(-88.0), Degrees(-180.0));
         let south_pole_2 = LatLong::new(Degrees(-87.0), Degrees(0.0));
 
-        let arc1 = Arc::between_positions(&south_pole_1, &south_pole_2);
+        let arc1 = Arc::try_from((&south_pole_1, &south_pole_2)).unwrap();
 
         let intersection_lengths = calculate_intersection_distances(&arc1, &arc1);
         assert_eq!(Radians(0.0), intersection_lengths.0);
@@ -641,7 +775,7 @@ mod tests {
 
         let south_pole_3 = LatLong::new(Degrees(-85.0), Degrees(0.0));
         let south_pole_4 = LatLong::new(Degrees(-86.0), Degrees(0.0));
-        let arc2 = Arc::between_positions(&south_pole_3, &south_pole_4);
+        let arc2 = Arc::try_from((&south_pole_3, &south_pole_4)).unwrap();
         let intersection_length = calculate_intersection_point_distance(&arc1, &arc2);
         assert!(intersection_length.is_none());
     }
