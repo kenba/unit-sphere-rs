@@ -25,7 +25,7 @@ use angle_sc::trig;
 use angle_sc::{clamp, is_small, Angle, Radians};
 
 /// The minimum value for angles and distances.
-pub const MIN_VALUE: f64 = 2.0 * core::f64::EPSILON;
+pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
 
 /// Calculate the Great Circle distance (angle from centre) between two points
 /// from their Latitudes and their Longitude difference.

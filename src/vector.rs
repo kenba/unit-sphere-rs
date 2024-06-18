@@ -32,7 +32,7 @@ pub mod intersection;
 pub const MIN_SQ_DISTANCE: f64 = great_circle::MIN_VALUE * great_circle::MIN_VALUE;
 
 /// The minimum length of a vector to normalize.
-pub const MIN_LENGTH: f64 = 16384.0 * core::f64::EPSILON;
+pub const MIN_LENGTH: f64 = 16384.0 * f64::EPSILON;
 
 /// The minimum norm of a vector to normalize.
 pub const MIN_NORM: f64 = MIN_LENGTH * MIN_LENGTH;
@@ -70,8 +70,8 @@ pub fn longitude(a: &Vector3d) -> Angle {
 /// returns true if `Vector3d` is a unit vector, false otherwise.
 #[must_use]
 pub fn is_unit(a: &Vector3d) -> bool {
-    const MIN_POINT_SQ_LENGTH: f64 = 1.0 - 12.0 * core::f64::EPSILON;
-    const MAX_POINT_SQ_LENGTH: f64 = 1.0 + 12.0 * core::f64::EPSILON;
+    const MIN_POINT_SQ_LENGTH: f64 = 1.0 - 12.0 * f64::EPSILON;
+    const MAX_POINT_SQ_LENGTH: f64 = 1.0 + 12.0 * f64::EPSILON;
 
     (MIN_POINT_SQ_LENGTH..=MAX_POINT_SQ_LENGTH).contains(&(a.norm()))
 }
@@ -96,7 +96,7 @@ pub fn distance(a: &Vector3d, b: &Vector3d) -> f64 {
 /// returns true if a and b are orthogonal, false otherwise.
 #[must_use]
 pub fn are_orthogonal(a: &Vector3d, b: &Vector3d) -> bool {
-    const MAX_LENGTH: f64 = 4.0 * core::f64::EPSILON;
+    const MAX_LENGTH: f64 = 4.0 * f64::EPSILON;
 
     (-MAX_LENGTH..=MAX_LENGTH).contains(&(a.dot(b)))
 }
@@ -121,7 +121,7 @@ pub fn delta_longitude(a: &Vector3d, b: &Vector3d) -> Angle {
 #[must_use]
 pub fn is_west_of(a: &Vector3d, b: &Vector3d) -> bool {
     // Compare with -epsilon to handle floating point errors
-    b.xy().perp(&a.xy()) <= -core::f64::EPSILON
+    b.xy().perp(&a.xy()) <= -f64::EPSILON
 }
 
 /// Calculate the right hand pole vector of a Great Circle from an initial
@@ -620,20 +620,12 @@ mod tests {
 
             let expected = (lat as f64).to_radians();
             let xtd = cross_track_distance(&pole_0, &point);
-            assert!(is_within_tolerance(
-                expected,
-                xtd.0,
-                2.0 * core::f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected, xtd.0, 2.0 * f64::EPSILON));
 
             let expected = great_circle::gc2e_distance(Radians(expected));
             let expected = expected * expected;
             let xtd2 = sq_cross_track_distance(&pole_0, &point);
-            assert!(is_within_tolerance(
-                expected,
-                xtd2,
-                4.0 * core::f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected, xtd2, 4.0 * f64::EPSILON));
         }
     }
 
@@ -657,32 +649,20 @@ mod tests {
 
             let expected = (lon as f64).to_radians();
             let atd = along_track_distance(&g_eq, &pole_0, &point);
-            assert!(is_within_tolerance(
-                expected,
-                atd.0,
-                2.0 * core::f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected, atd.0, 2.0 * f64::EPSILON));
 
             let (atd, xtd) = calculate_atd_and_xtd(&g_eq, &pole_0, &point);
-            assert!(is_within_tolerance(
-                expected,
-                atd.0,
-                2.0 * core::f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected, atd.0, 2.0 * f64::EPSILON));
             assert!(is_within_tolerance(
                 1_f64.to_radians(),
                 xtd.0,
-                2.0 * core::f64::EPSILON
+                2.0 * f64::EPSILON
             ));
 
             let expected = great_circle::gc2e_distance(Radians(expected));
             let expected = expected * expected;
             let atd2 = sq_along_track_distance(&g_eq, &pole_0, &point);
-            assert!(is_within_tolerance(
-                expected,
-                atd2,
-                2.0 * core::f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected, atd2, 2.0 * f64::EPSILON));
         }
     }
 

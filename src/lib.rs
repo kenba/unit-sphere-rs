@@ -520,7 +520,7 @@ mod tests {
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             dist.0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
         assert_eq!(180.0, Degrees::from(azimuth).0);
     }
@@ -534,7 +534,7 @@ mod tests {
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             dist.0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
         assert_eq!(0.0, Degrees::from(azimuth).0);
     }
@@ -548,7 +548,7 @@ mod tests {
         assert!(is_within_tolerance(
             2.0 * core::f64::consts::FRAC_PI_3,
             dist.0,
-            2.0 * core::f64::EPSILON
+            2.0 * f64::EPSILON
         ));
         assert_eq!(-90.0, Degrees::from(azimuth).0);
     }
@@ -571,14 +571,14 @@ mod tests {
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             arc.length().0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
         assert_eq!(Angle::from(Degrees(90.0)), arc.azimuth());
         let b = Vector3d::from(&e_eq);
         assert!(is_within_tolerance(
             0.0,
             vector::distance(&b, &arc.b()),
-            core::f64::EPSILON
+            f64::EPSILON
         ));
 
         let start_arc = arc.end_arc(false);
@@ -589,7 +589,7 @@ mod tests {
 
         let angle_90 = Angle::from(Degrees(90.0));
         let pole_0 = Vector3d::new(0.0, 0.0, 1.0);
-        assert!(vector::distance(&pole_0, &arc.angle_position(angle_90)) <= core::f64::EPSILON);
+        assert!(vector::distance(&pole_0, &arc.angle_position(angle_90)) <= f64::EPSILON);
 
         let end_arc = arc.end_arc(true);
         assert_eq!(0.02, end_arc.length().0);
@@ -623,7 +623,7 @@ mod tests {
         assert!(is_within_tolerance(
             e_eq.lon().0,
             LatLong::from(&arc.b()).lon().0,
-            50.0 * core::f64::EPSILON
+            50.0 * f64::EPSILON
         ));
 
         let arc = Arc::between_positions(&south_pole, &e_eq);
@@ -635,7 +635,7 @@ mod tests {
         assert!(is_within_tolerance(
             e_eq.lon().0,
             LatLong::from(&arc.b()).lon().0,
-            50.0 * core::f64::EPSILON
+            50.0 * f64::EPSILON
         ));
 
         let w_eq = LatLong::new(Degrees(0.0), Degrees(-140.0));
@@ -649,7 +649,7 @@ mod tests {
         assert!(is_within_tolerance(
             w_eq.lon().0,
             LatLong::from(&arc.b()).lon().0,
-            256.0 * core::f64::EPSILON
+            256.0 * f64::EPSILON
         ));
 
         let arc = Arc::between_positions(&south_pole, &w_eq);
@@ -661,7 +661,7 @@ mod tests {
         assert!(is_within_tolerance(
             w_eq.lon().0,
             LatLong::from(&arc.b()).lon().0,
-            256.0 * core::f64::EPSILON
+            256.0 * f64::EPSILON
         ));
 
         let invalid_arc = Arc::try_from((&north_pole, &north_pole));
@@ -711,16 +711,8 @@ mod tests {
 
             let expected = (lat as f64).to_radians();
             let (atd, xtd) = arc.calculate_atd_and_xtd(&point);
-            assert!(is_within_tolerance(
-                1_f64.to_radians(),
-                atd.0,
-                core::f64::EPSILON
-            ));
-            assert!(is_within_tolerance(
-                expected,
-                xtd.0,
-                2.0 * core::f64::EPSILON
-            ));
+            assert!(is_within_tolerance(1_f64.to_radians(), atd.0, f64::EPSILON));
+            assert!(is_within_tolerance(expected, xtd.0, 2.0 * f64::EPSILON));
         }
     }
 
@@ -740,7 +732,7 @@ mod tests {
         assert!(is_within_tolerance(
             0.5406004765152588,
             intersection_distance.0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
 
         let intersection_distance_other_arc =
@@ -748,7 +740,7 @@ mod tests {
         assert!(is_within_tolerance(
             0.17553891720631054,
             intersection_distance_other_arc.0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
 
         let intersection_pos = arc1.position(intersection_distance);

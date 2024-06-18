@@ -96,15 +96,14 @@ pub fn calculate_intersection_distances(
     (Radians(gc_d_a1c), Radians(gc_d_a2c))
 }
 
-/// Whether an intersection point is within an arc
-/// * `ref_distance` the distance to the intersection point from the start
-/// * `arc_length` the length of the arc.
+/// Whether an intersection point is within an `Arc`.
+/// * `distance` - the along track distance to the point from the start of the `Arc`.
+/// * `length` the length of the `Arc`.
 ///
-/// return true if the point is within the arc, false otherwise.
+/// return true if the intersection point is within the `Arc`, false otherwise.
 #[must_use]
-pub fn is_within(ref_distance: f64, arc_length: f64) -> bool {
-    (-core::f64::EPSILON <= ref_distance)
-        && (ref_distance <= arc_length + (core::f64::EPSILON * (1.0 + arc_length)))
+pub fn is_within(distance: f64, length: f64) -> bool {
+    (-f64::EPSILON <= distance) && (distance <= length + (f64::EPSILON * (1.0 + length)))
 }
 
 /// Determine whether the other intersection point is closer to the start
@@ -218,8 +217,6 @@ fn calc_same_gc_reference_lengths(
     arc2_length: Radians,
     gc_d: Radians,
 ) -> (Radians, Radians) {
-    const TWO_PI: f64 = 2.0 * core::f64::consts::PI;
-
     if reciprocal {
         let max_length = if arc1_length < arc2_length {
             arc2_length
@@ -236,7 +233,11 @@ fn calc_same_gc_reference_lengths(
 
         // The distance between b ends
         let b_d = gc_d.0 - arc1_length.0 - arc2_length.0;
-        let b_gc_d = if a2_ahead { b_d } else { TWO_PI - b_d };
+        let b_gc_d = if a2_ahead {
+            b_d
+        } else {
+            core::f64::consts::TAU - b_d
+        };
 
         if b_gc_d < gc_d.0 {
             (Radians(b_gc_d + arc1_length.0), arc2_length)
@@ -248,11 +249,11 @@ fn calc_same_gc_reference_lengths(
         let b1a2 = if a2_ahead {
             gc_d.0 - arc1_length.0
         } else {
-            TWO_PI - gc_d.0 - arc1_length.0
+            core::f64::consts::TAU - gc_d.0 - arc1_length.0
         };
         // The distance to the start of arc1 from the end of arc2
         let b2a1 = if a2_ahead {
-            TWO_PI - gc_d.0 - arc2_length.0
+            core::f64::consts::TAU - gc_d.0 - arc2_length.0
         } else {
             gc_d.0 - arc2_length.0
         };
@@ -369,16 +370,8 @@ mod tests {
 
         let c = calculate_intersection_point(&pole1, &pole2).unwrap();
         let (c1, c2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &c);
-        assert!(is_within_tolerance(
-            -3.1169124762478333,
-            c1.0,
-            core::f64::EPSILON
-        ));
-        assert!(is_within_tolerance(
-            -3.1169124762478333,
-            c2.0,
-            core::f64::EPSILON
-        ));
+        assert!(is_within_tolerance(-3.1169124762478333, c1.0, f64::EPSILON));
+        assert!(is_within_tolerance(-3.1169124762478333, c2.0, f64::EPSILON));
 
         // opposite intersection point
         let d = -c;
@@ -386,18 +379,26 @@ mod tests {
         assert!(is_within_tolerance(
             0.024680177341956263,
             d1.0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
         assert!(is_within_tolerance(
             0.024680177341956263,
             d2.0,
-            core::f64::EPSILON
+            f64::EPSILON
         ));
 
         // Same start points and intersection point
         let (e1, e2) = calculate_intersection_distances(&a1, &pole1, &a1, &pole2, &a1);
         assert_eq!(0.0, e1.0);
         assert_eq!(0.0, e2.0);
+    }
+
+    #[test]
+    fn test_is_within() {
+        assert!(!is_within(-2.0 * f64::EPSILON, 2.0));
+        assert!(is_within(-f64::EPSILON, 2.0));
+        assert!(is_within(2.0 * (1.0 + f64::EPSILON), 2.0));
+        assert!(!is_within(2.0 * (1.0 + 3.0 * f64::EPSILON), 2.0));
     }
 
     #[test]
