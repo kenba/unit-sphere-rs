@@ -51,7 +51,10 @@ pub fn to_point(lat: Angle, lon: Angle) -> Vector3d {
     )
 }
 
-/// Calculate the latitude of a point.
+/// Calculate the latitude of a point.  
+/// * `a` - the point.
+///
+/// returns the latitude of the point
 #[must_use]
 pub fn latitude(a: &Vector3d) -> Angle {
     let sin_a = trig::UnitNegRange(a.z);
@@ -59,14 +62,18 @@ pub fn latitude(a: &Vector3d) -> Angle {
 }
 
 /// Calculate the longitude of a point.
+/// * `a` - the point.
+///
+/// returns the longitude of the point
 #[must_use]
 pub fn longitude(a: &Vector3d) -> Angle {
     Angle::from_y_x(a.y, a.x)
 }
 
 /// Determine whether a `Vector3d` is a unit vector.
+/// * `a` - the vector.
 ///
-/// returns true if `Vector3d` is a unit vector, false otherwise.
+/// returns true if `a` is a unit vector, false otherwise.
 #[must_use]
 pub fn is_unit(a: &Vector3d) -> bool {
     const MIN_POINT_SQ_LENGTH: f64 = 1.0 - 12.0 * f64::EPSILON;
@@ -75,9 +82,12 @@ pub fn is_unit(a: &Vector3d) -> bool {
     (MIN_POINT_SQ_LENGTH..=MAX_POINT_SQ_LENGTH).contains(&(a.norm()))
 }
 
-/// Calculate the square of the Euclidean distance between two Points.
+/// Calculate the square of the Euclidean distance between two points.
 /// Note: points do NOT need to be valid Points.  
 /// @post for unit vectors: result <= 4
+/// * `a`, `b` the points.
+///
+/// returns the square of the Euclidean distance between the points.
 #[must_use]
 pub fn sq_distance(a: &Vector3d, b: &Vector3d) -> f64 {
     (b - a).norm_squared()
@@ -85,12 +95,16 @@ pub fn sq_distance(a: &Vector3d, b: &Vector3d) -> f64 {
 
 /// Calculate the shortest (Euclidean) distance between two Points.  
 /// @post for unit vectors: result <= 2
+/// * `a`, `b` the points.
+///
+/// returns the shortest (Euclidean) distance between the points.
 #[must_use]
 pub fn distance(a: &Vector3d, b: &Vector3d) -> f64 {
     (b - a).norm()
 }
 
 /// Determine whether two `Vector3d`s are orthogonal (perpendicular).
+/// * `a`, `b` the `Vector3d`s.
 ///
 /// returns true if a and b are orthogonal, false otherwise.
 #[must_use]
