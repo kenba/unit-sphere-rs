@@ -22,8 +22,7 @@
 //! calculations using vectors to represent points and great circle poles on a
 //! unit sphere.
 
-use crate::great_circle;
-use crate::Vector3d;
+use crate::{great_circle, Vector3d};
 use angle_sc::{is_small, trig, Angle, Radians};
 
 pub mod intersection;
@@ -421,8 +420,8 @@ mod tests {
         assert!(is_unit(&point_1));
         assert_eq!(false, is_west_of(&point_0, &point_1));
         assert_eq!(
-            core::f64::consts::PI,
-            libm::fabs(Radians::from(delta_longitude(&point_0, &point_1)).0)
+            Radians(core::f64::consts::PI),
+            Radians::from(delta_longitude(&point_0, &point_1)).abs()
         );
 
         let lat_lon_0_m180 = LatLong::new(Degrees(0.0), Degrees(-180.0));

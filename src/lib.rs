@@ -617,7 +617,7 @@ mod tests {
         let arc = Arc::between_positions(&north_pole, &e_eq);
         assert!(is_within_tolerance(
             e_eq.lat().0,
-            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            LatLong::from(&arc.b()).lat().abs().0,
             1e-13
         ));
         assert!(is_within_tolerance(
@@ -629,7 +629,7 @@ mod tests {
         let arc = Arc::between_positions(&south_pole, &e_eq);
         assert!(is_within_tolerance(
             e_eq.lat().0,
-            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            LatLong::from(&arc.b()).lat().abs().0,
             1e-13
         ));
         assert!(is_within_tolerance(
@@ -643,7 +643,7 @@ mod tests {
         let arc = Arc::between_positions(&north_pole, &w_eq);
         assert!(is_within_tolerance(
             w_eq.lat().0,
-            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            LatLong::from(&arc.b()).lat().abs().0,
             1e-13
         ));
         assert!(is_within_tolerance(
@@ -655,7 +655,7 @@ mod tests {
         let arc = Arc::between_positions(&south_pole, &w_eq);
         assert!(is_within_tolerance(
             w_eq.lat().0,
-            libm::fabs(LatLong::from(&arc.b()).lat().0),
+            LatLong::from(&arc.b()).lat().abs().0,
             1e-13
         ));
         assert!(is_within_tolerance(

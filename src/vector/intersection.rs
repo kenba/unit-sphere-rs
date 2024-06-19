@@ -154,7 +154,7 @@ fn use_other_point(
             if within_arc {
                 0.0
             } else {
-                libm::fabs(ref_length.0)
+                ref_length.abs().0
             }
         }
 

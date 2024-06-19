@@ -21,8 +21,7 @@
 //! The `great_circle` module contains functions for calculating the course
 //! and distance between points along great circles on a unit sphere.
 
-use angle_sc::trig;
-use angle_sc::{clamp, is_small, Angle, Radians};
+use angle_sc::{clamp, is_small, trig, Angle, Radians};
 
 /// The minimum value for angles and distances.
 pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
@@ -123,7 +122,7 @@ pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> An
     } else {
         let sin_azimuth = b_lat.cos().0 * delta_long.sin().0;
         let temp = (a_lat.sin().0 * b_lat.cos().0 * delta_long.sin().0 * delta_long.sin().0)
-            / (1.0 + libm::fabs(delta_long.cos().0));
+            / (1.0 + delta_long.cos().abs().0);
         let cos_azimuth = if delta_long.cos().0 < 0.0 {
             b_lat.sin().0 * a_lat.cos().0 + a_lat.sin().0 * b_lat.cos().0 - temp
         } else {
@@ -145,12 +144,12 @@ mod tests {
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             e2gc_distance(core::f64::consts::SQRT_2).0,
-            std::f64::EPSILON
+            f64::EPSILON
         ));
         assert!(is_within_tolerance(
             core::f64::consts::SQRT_2,
             gc2e_distance(Radians(core::f64::consts::FRAC_PI_2)),
-            std::f64::EPSILON
+            f64::EPSILON
         ));
         assert_eq!(2.0, gc2e_distance(Radians(core::f64::consts::PI)));
     }
@@ -165,14 +164,14 @@ mod tests {
         assert!(is_within_tolerance(
             gc_distance.0,
             haversine_distance.0,
-            std::f64::EPSILON
+            f64::EPSILON
         ));
 
         let gc_azimuth = calculate_gc_azimuth(angle_0, angle_45, -angle_45);
         assert!(is_within_tolerance(
             -35.264389682754654,
             Degrees::from(gc_azimuth).0,
-            32.0 * std::f64::EPSILON
+            32.0 * f64::EPSILON
         ));
 
         let gc_distance = calculate_gc_distance(angle_45, angle_45, angle_0);
