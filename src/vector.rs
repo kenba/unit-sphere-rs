@@ -209,6 +209,20 @@ pub fn position(a: &Vector3d, dir: &Vector3d, distance: Angle) -> Vector3d {
     distance.cos().0 * a + distance.sin().0 * dir
 }
 
+/// Calculate the mean position of a slice of points on a unit sphere.
+/// * `points` - the points.
+///
+/// returns the mean position vector or None if the sum of points is antipodal.
+#[must_use]
+pub fn mean_position(points: &[Vector3d]) -> Option<Vector3d> {
+    let c: Vector3d = points.iter().sum();
+    if is_small(c.norm(), MIN_NORM) {
+        None
+    } else {
+        Some(c.normalize())
+    }
+}
+
 /// Calculate the direction vector of a Great Circle rotated by angle.
 /// * `dir` - the direction vector of a Great Circle arc.
 /// * `pole` - the pole of a Great Circle.
@@ -597,6 +611,24 @@ mod tests {
 
         let pos_3 = rotate_position(&g_eq, &pole_0, angle_90, angle_90);
         assert_eq!(pole_0, pos_3);
+
+        // mean_position is on Equator at 45 degrees East.
+        let pos_4 = mean_position(&[g_eq, e_eq]).unwrap();
+        assert!(is_within_tolerance(
+            pos_4.x,
+            core::f64::consts::FRAC_1_SQRT_2,
+            f64::EPSILON
+        ));
+        assert!(is_within_tolerance(
+            pos_4.y,
+            core::f64::consts::FRAC_1_SQRT_2,
+            f64::EPSILON
+        ));
+
+        // Test mean_position of antipodal points
+        let w_eq = -e_eq;
+        let antipodal_mean = mean_position(&[e_eq, w_eq]);
+        assert!(antipodal_mean.is_none());
     }
 
     #[test]

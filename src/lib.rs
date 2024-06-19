@@ -335,6 +335,12 @@ impl Arc {
         self.position(self.length)
     }
 
+    /// The mid point of the arc.
+    #[must_use]
+    pub fn mid_point(&self) -> Vector3d {
+        self.position(Radians(0.5 * self.length.0))
+    }
+
     /// The position of a perpendicular point at distance from the arc.
     /// * `point` a point on the arc's great circle.
     /// * `distance` the perpendicular distance from the arc's great circle.
@@ -579,6 +585,14 @@ mod tests {
             0.0,
             vector::distance(&b, &arc.b()),
             f64::EPSILON
+        ));
+
+        let mid_point = arc.mid_point();
+        assert_eq!(0.0, mid_point.z);
+        assert!(is_within_tolerance(
+            45.0,
+            Degrees::from(longitude(&mid_point)).0,
+            32.0 * f64::EPSILON
         ));
 
         let start_arc = arc.end_arc(false);
