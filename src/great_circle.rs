@@ -21,7 +21,7 @@
 //! The `great_circle` module contains functions for calculating the course
 //! and distance between points along great circles on a unit sphere.
 
-use angle_sc::{clamp, is_small, trig, Angle, Radians};
+use angle_sc::{is_small, trig, Angle, Radians};
 
 /// The minimum value for angles and distances.
 pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
@@ -40,11 +40,7 @@ pub fn calculate_haversine_distance(a_lat: Angle, b_lat: Angle, delta_long: Angl
     let haversine_lat = trig::sq_sine_half(delta_lat.cos());
     let haversine_lon = trig::sq_sine_half(delta_long.cos());
 
-    let a = clamp(
-        haversine_lat + a_lat.cos().0 * b_lat.cos().0 * haversine_lon,
-        0.0,
-        1.0,
-    );
+    let a = (haversine_lat + a_lat.cos().0 * b_lat.cos().0 * haversine_lon).clamp(0.0, 1.0);
 
     if is_small(a, MIN_VALUE) {
         Radians(0.0)
@@ -84,7 +80,7 @@ pub fn sq_euclidean_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> f
     let delta_z = b_lat.sin().0 - a_lat.sin().0;
 
     let result = delta_x * delta_x + delta_y * delta_y + delta_z * delta_z;
-    clamp(result, 0.0, 4.0)
+    result.clamp(0.0, 4.0)
 }
 
 /// Calculate the Great Circle distance (angle from centre) between two points
