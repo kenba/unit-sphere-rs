@@ -79,7 +79,7 @@ pub fn is_unit(a: &Vector3d) -> bool {
     const MIN_POINT_SQ_LENGTH: f64 = 1.0 - 12.0 * f64::EPSILON;
     const MAX_POINT_SQ_LENGTH: f64 = 1.0 + 12.0 * f64::EPSILON;
 
-    (MIN_POINT_SQ_LENGTH..=MAX_POINT_SQ_LENGTH).contains(&(a.norm()))
+    (MIN_POINT_SQ_LENGTH..=MAX_POINT_SQ_LENGTH).contains(&(a.norm_squared()))
 }
 
 /// Calculate the square of the Euclidean distance between two points.
@@ -230,7 +230,7 @@ pub fn position(a: &Vector3d, dir: &Vector3d, distance: Angle) -> Vector3d {
 #[must_use]
 pub fn mean_position(points: &[Vector3d]) -> Option<Vector3d> {
     let c: Vector3d = points.iter().sum();
-    if is_small(c.norm(), MIN_NORM) {
+    if is_small(c.norm_squared(), MIN_NORM) {
         None
     } else {
         Some(c.normalize())
@@ -276,10 +276,15 @@ fn sin_xtd(pole: &Vector3d, point: &Vector3d) -> trig::UnitNegRange {
 /// * `pole` - the Great Circle pole.
 /// * `point` - the point.
 ///
-/// returns the across track distance of point relative to pole.
+/// returns the across track distance of point relative to pole, in `Radians`.
 #[must_use]
 pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
-    Radians(libm::asin(sin_xtd(pole, point).0))
+    let sin_d = sin_xtd(pole, point);
+    if libm::fabs(sin_d.0) < f64::EPSILON {
+        Radians(0.0)
+    } else {
+        Radians(libm::asin(sin_d.0))
+    }
 }
 
 /// The square of the Euclidean cross track distance of a point relative to a
@@ -290,11 +295,11 @@ pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
 /// returns the square of the euclidean distance of point relative to pole.
 #[must_use]
 pub fn sq_cross_track_distance(pole: &Vector3d, point: &Vector3d) -> f64 {
-    let sin_d = libm::fabs(sin_xtd(pole, point).0);
-    if sin_d < great_circle::MIN_VALUE {
+    let sin_d = sin_xtd(pole, point);
+    if libm::fabs(sin_d.0) <= great_circle::MIN_VALUE {
         0.0
     } else {
-        2.0 * (1.0 - trig::swap_sin_cos(trig::UnitNegRange(sin_d)).0)
+        2.0 * (1.0 - trig::swap_sin_cos(sin_d).0)
     }
 }
 
@@ -320,7 +325,7 @@ fn calculate_point_on_plane(pole: &Vector3d, point: &Vector3d) -> Vector3d {
 pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {
     let plane_point = calculate_point_on_plane(pole, point);
     // if point is close to a pole
-    if is_small(plane_point.norm(), MIN_NORM) {
+    if is_small(plane_point.norm_squared(), MIN_NORM) {
         0.0
     } else {
         // if point is close to start point, a
@@ -380,36 +385,31 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
     let mut atd = Radians(0.0);
     let mut xtd = Radians(0.0);
 
-    let mut sq_d = sq_distance(a, p);
-    // is point is not close to start
+    let sq_d = sq_distance(a, p);
     if !is_small(sq_d, MIN_SQ_DISTANCE) {
-        let sin_xtd = sin_xtd(pole, p);
-        let abs_sin_xtd = libm::fabs(sin_xtd.0);
-
-        // if the across track distance is significant
-        if great_circle::MIN_VALUE < abs_sin_xtd {
-            // the closest point on the plane of the pole to the point
-            let plane_point = p - pole * sin_xtd.0;
-            if is_small(plane_point.norm(), MIN_NORM) {
-                // The point is too close to a pole to measure
-                xtd = Radians(if 0.0 < sin_xtd.0 {
-                    core::f64::consts::FRAC_PI_2
-                } else {
-                    -core::f64::consts::FRAC_PI_2
-                });
-                sq_d = 0.0;
-            } else {
-                // calculate the signed great circle across track distance
-                xtd = Radians(libm::asin(sin_xtd.0));
-                sq_d = sq_distance(a, &(plane_point.normalize()));
-            }
+        // point is not close to a
+        let sin_xtd = sin_xtd(pole, p).0;
+        if libm::fabs(sin_xtd) >= f64::EPSILON {
+            xtd = Radians(libm::asin(sin_xtd));
         }
 
-        if !is_small(sq_d, MIN_SQ_DISTANCE) {
-            atd = Radians(libm::copysign(
-                great_circle::e2gc_distance(libm::sqrt(sq_d)).0,
-                sin_atd(a, pole, p).0,
-            ));
+        // the closest point on the plane of the pole to the point
+        let plane_point = p - pole * sin_xtd;
+
+        // If point is not close to the great circle pole
+        if !is_small(plane_point.norm_squared(), MIN_NORM) {
+            // calculate the square of the Euclidean distance to the point
+            // projected on the great circle
+            let sq_atd = sq_distance(a, &(plane_point.normalize()));
+
+            // convert the unsigned square of the Euclidean distance to the
+            // signed great circle along track distance in Radians
+            if !is_small(sq_atd, MIN_SQ_DISTANCE) {
+                atd = Radians(libm::copysign(
+                    great_circle::e2gc_distance(libm::sqrt(sq_atd)).0,
+                    sin_atd(a, pole, p).0,
+                ));
+            }
         }
     }
 
@@ -657,20 +657,31 @@ mod tests {
 
         let longitude = Degrees(1.0);
 
-        // Accuracy drops off outside of this range
-        for lat in -83..84 {
+        for lat in -89..90 {
             let latitude = Degrees(lat as f64);
             let latlong = LatLong::new(latitude, longitude);
             let point = Vector3d::from(&latlong);
 
             let expected = (lat as f64).to_radians();
             let xtd = cross_track_distance(&pole_0, &point);
-            assert!(is_within_tolerance(expected, xtd.0, 2.0 * f64::EPSILON));
+            // Accuracy reduces outside of this range
+            let tolerance = if (-83..84).contains(&lat) {
+                2.0 * f64::EPSILON
+            } else {
+                32.0 * f64::EPSILON
+            };
+            assert!(is_within_tolerance(expected, xtd.0, tolerance));
 
             let expected = great_circle::gc2e_distance(Radians(expected));
             let expected = expected * expected;
             let xtd2 = sq_cross_track_distance(&pole_0, &point);
-            assert!(is_within_tolerance(expected, xtd2, 4.0 * f64::EPSILON));
+            // Accuracy reduces outside of this range
+            let tolerance = if (-83..84).contains(&lat) {
+                4.0 * f64::EPSILON
+            } else {
+                64.0 * f64::EPSILON
+            };
+            assert!(is_within_tolerance(expected, xtd2, tolerance));
         }
     }
 
@@ -684,30 +695,38 @@ mod tests {
 
         let pole_0 = g_eq.cross(&e_eq);
 
+        // North of Equator
         let latitude = Degrees(1.0);
 
-        // Accuracy drops off outside of this range
-        for lon in 123..124 {
+        for lon in -179..180 {
             let longitude = Degrees(lon as f64);
             let latlong = LatLong::new(latitude, longitude);
             let point = Vector3d::from(&latlong);
 
             let expected = (lon as f64).to_radians();
             let atd = along_track_distance(&g_eq, &pole_0, &point);
-            assert!(is_within_tolerance(expected, atd.0, 2.0 * f64::EPSILON));
+            // Accuracy reduces outside of this range
+            let tolerance = if (-153..154).contains(&lon) {
+                2.0 * f64::EPSILON
+            } else {
+                32.0 * f64::EPSILON
+            };
+            assert!(is_within_tolerance(expected, atd.0, tolerance));
 
             let (atd, xtd) = calculate_atd_and_xtd(&g_eq, &pole_0, &point);
-            assert!(is_within_tolerance(expected, atd.0, 2.0 * f64::EPSILON));
-            assert!(is_within_tolerance(
-                1_f64.to_radians(),
-                xtd.0,
-                2.0 * f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected, atd.0, tolerance));
+            assert!(is_within_tolerance(1_f64.to_radians(), xtd.0, f64::EPSILON));
 
             let expected = great_circle::gc2e_distance(Radians(expected));
             let expected = expected * expected;
             let atd2 = sq_along_track_distance(&g_eq, &pole_0, &point);
-            assert!(is_within_tolerance(expected, atd2, 2.0 * f64::EPSILON));
+            // Accuracy reduces outside of this range
+            let tolerance = if (-86..87).contains(&lon) {
+                2.0 * f64::EPSILON
+            } else {
+                32.0 * f64::EPSILON
+            };
+            assert!(is_within_tolerance(expected, atd2, tolerance));
         }
     }
 

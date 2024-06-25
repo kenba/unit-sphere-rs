@@ -397,7 +397,7 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
         let a = Vector3d::from(params.0);
         let b = Vector3d::from(params.1);
         let pole = a.cross(&b);
-        if is_small(pole.norm(), vector::MIN_NORM) {
+        if is_small(pole.norm_squared(), vector::MIN_NORM) {
             if vector::sq_distance(&a, &b) < 1.0 {
                 Err("Positions are too close")
             } else {

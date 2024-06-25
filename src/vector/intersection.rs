@@ -50,7 +50,7 @@ use angle_sc::{is_small, max, Radians};
 #[must_use]
 pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
     let c = pole1.cross(pole2);
-    if is_small(c.norm(), MIN_NORM) {
+    if is_small(c.norm_squared(), MIN_NORM) {
         None
     } else {
         Some(c.normalize())
@@ -64,7 +64,7 @@ pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Optio
 /// * `c` the intersection point
 ///
 /// returns a pair of great circle distances along the arcs to the
-/// intersection point in Radians.
+/// intersection point in `Radians`.
 #[must_use]
 pub fn calculate_intersection_distances(
     a1: &Vector3d,
@@ -177,7 +177,7 @@ fn use_other_point(
 /// * `c` an intersection point
 ///
 /// returns a pair of great circle distances along the arcs to the
-/// intersection point in Radians and a boolean indicating whether the antipodal
+/// intersection point in `Radians` and a boolean indicating whether the antipodal
 /// intersection point was used instead of the one given.
 #[must_use]
 pub fn calculate_closest_intersection_distances(
@@ -208,7 +208,7 @@ pub fn calculate_closest_intersection_distances(
 /// * `gc_d` the great circle distance between the arc start points.
 ///
 /// returns the distances along the first arc and second arc to their closest
-/// (reference) points.
+/// (reference) points in `Radians`.
 #[must_use]
 fn calc_same_gc_reference_lengths(
     reciprocal: bool,
@@ -272,7 +272,7 @@ fn calc_same_gc_reference_lengths(
 /// * `length1`, `length2` the arc lengths.
 ///
 /// returns the distances along the first arc and second arc to their closest
-/// (reference) points.
+/// (reference) points in `Radians`.
 #[must_use]
 pub fn calculate_same_gc_reference_distances(
     a1: &Vector3d,
