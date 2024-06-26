@@ -21,7 +21,7 @@
 //! The `great_circle` module contains functions for calculating the course
 //! and distance between points along great circles on a unit sphere.
 
-use angle_sc::{is_small, trig, Angle, Radians};
+use angle_sc::{trig, Angle, Radians};
 
 /// The minimum value for angles and distances.
 pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
@@ -42,7 +42,7 @@ pub fn calculate_haversine_distance(a_lat: Angle, b_lat: Angle, delta_long: Angl
 
     let a = (haversine_lat + a_lat.cos().0 * b_lat.cos().0 * haversine_lon).clamp(0.0, 1.0);
 
-    if is_small(a, MIN_VALUE) {
+    if a < MIN_VALUE {
         Radians(0.0)
     } else {
         Radians(2.0 * libm::asin(libm::sqrt(a)))
@@ -53,7 +53,7 @@ pub fn calculate_haversine_distance(a_lat: Angle, b_lat: Angle, delta_long: Angl
 /// e should satisfy: 0 <= e <= 2, if not it is clamped into range.
 #[must_use]
 pub fn e2gc_distance(e: f64) -> Radians {
-    if is_small(e, MIN_VALUE) {
+    if e < MIN_VALUE {
         Radians(0.0)
     } else {
         Radians(2.0 * libm::asin(trig::UnitNegRange::clamp(0.5 * e).0))
@@ -107,7 +107,7 @@ pub fn calculate_gc_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> R
 #[must_use]
 pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
     // if start point is North or South pole
-    if is_small(a_lat.cos().0, MIN_VALUE) {
+    if a_lat.cos().0 < MIN_VALUE {
         if a_lat.sin().0 < 0.0 {
             // South pole, azimuth is zero
             Angle::default()
@@ -173,7 +173,7 @@ mod tests {
         let gc_distance = calculate_gc_distance(angle_45, angle_45, angle_0);
         assert_eq!(0.0, gc_distance.0);
         let haversine_distance = calculate_haversine_distance(angle_45, angle_45, angle_0);
-        assert!(is_small(haversine_distance.0, 2.11e-8));
+        assert_eq!(0.0, haversine_distance.0);
 
         let gc_azimuth = calculate_gc_azimuth(angle_45, angle_45, angle_0);
         assert_eq!(0.0, Degrees::from(gc_azimuth).0);

@@ -38,9 +38,9 @@
 //! The tricky part is choosing which of the two intersection points to use.  
 //! Most of the functions in this module perform that task.
 
-use super::{distance, sin_atd, sq_distance, Vector3d, MIN_NORM, MIN_SQ_DISTANCE};
+use super::{distance, normalize, sin_atd, sq_distance, Vector3d, MIN_SQ_DISTANCE};
 use crate::great_circle;
-use angle_sc::{is_small, max, Radians};
+use angle_sc::{max, Radians};
 
 /// Calculate an intersection point between the poles of two Great Circles.  
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>  
@@ -49,12 +49,7 @@ use angle_sc::{is_small, max, Radians};
 /// return an intersection point or None if the poles are the same (or opposing) Great Circles.
 #[must_use]
 pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
-    let c = pole1.cross(pole2);
-    if is_small(c.norm_squared(), MIN_NORM) {
-        None
-    } else {
-        Some(c.normalize())
-    }
+    normalize(&pole1.cross(pole2))
 }
 
 /// Calculate the great circle distances to an intersection point from the
@@ -74,7 +69,7 @@ pub fn calculate_intersection_distances(
     c: &Vector3d,
 ) -> (Radians, Radians) {
     let sq_d_a1c = sq_distance(a1, c);
-    let gc_d_a1c = if is_small(sq_d_a1c, MIN_SQ_DISTANCE) {
+    let gc_d_a1c = if sq_d_a1c < MIN_SQ_DISTANCE {
         0.0
     } else {
         libm::copysign(
@@ -84,7 +79,7 @@ pub fn calculate_intersection_distances(
     };
 
     let sq_d_a2c = sq_distance(a2, c);
-    let gc_d_a2c = if is_small(sq_d_a2c, MIN_SQ_DISTANCE) {
+    let gc_d_a2c = if sq_d_a2c < MIN_SQ_DISTANCE {
         0.0
     } else {
         libm::copysign(
@@ -307,7 +302,7 @@ pub fn calculate_intersection_point_distances(
 ) -> (Radians, Radians) {
     // Calculate the great circle distance between the start points.
     let gc_d = great_circle::e2gc_distance(distance(a1, a2));
-    if is_small(gc_d.0, great_circle::MIN_VALUE) {
+    if gc_d.0 < great_circle::MIN_VALUE {
         (Radians(0.0), Radians(0.0))
     } else {
         calculate_intersection_point(pole1, pole2).map_or_else(

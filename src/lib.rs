@@ -82,7 +82,7 @@ extern crate nalgebra as na;
 pub mod great_circle;
 pub mod vector;
 
-use angle_sc::{is_small, trig};
+use angle_sc::trig;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 
 /// Test whether a latitude in degrees is a valid latitude.  
@@ -272,7 +272,7 @@ impl Arc {
         let (azimuth, length) = calculate_azimuth_and_distance(a, b);
         let a_lat = Angle::from(a.lat());
         // if a is at the North or South pole
-        if is_small(a_lat.cos().0, great_circle::MIN_VALUE) {
+        if a_lat.cos().0 < great_circle::MIN_VALUE {
             // use b's longitude
             Self::from_lat_lon_azi_length(&LatLong::new(a.lat(), b.lon()), azimuth, length)
         } else {
@@ -368,7 +368,7 @@ impl Arc {
     pub fn end_arc(&self, at_b: bool) -> Self {
         let p = if at_b { self.b() } else { self.a };
         let pole = vector::direction(&p, &self.pole);
-        if is_small(self.half_width.0, great_circle::MIN_VALUE) {
+        if self.half_width.0 < great_circle::MIN_VALUE {
             Self::new(p, pole, Radians(0.0), Radians(0.0))
         } else {
             let a = self.perp_position(&p, self.half_width);
@@ -396,21 +396,24 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
         // Convert positions to vectors
         let a = Vector3d::from(params.0);
         let b = Vector3d::from(params.1);
-        let pole = a.cross(&b);
-        if is_small(pole.norm_squared(), vector::MIN_NORM) {
-            if vector::sq_distance(&a, &b) < 1.0 {
-                Err("Positions are too close")
-            } else {
-                Err("Positions are antipodal")
-            }
-        } else {
-            Ok(Self::new(
-                a,
-                pole.normalize(),
-                great_circle::e2gc_distance(vector::distance(&a, &b)),
-                Radians(0.0),
-            ))
-        }
+        // Calculate the great circle pole
+        vector::normalize(&a.cross(&b)).map_or_else(
+            || {
+                if vector::sq_distance(&a, &b) < 1.0 {
+                    Err("Positions are too close")
+                } else {
+                    Err("Positions are antipodal")
+                }
+            },
+            |pole| {
+                Ok(Self::new(
+                    a,
+                    pole,
+                    great_circle::e2gc_distance(vector::distance(&a, &b)),
+                    Radians(0.0),
+                ))
+            },
+        )
     }
 }
 
@@ -442,8 +445,8 @@ pub fn calculate_intersection_point_distance(arc1: &Arc, arc2: &Arc) -> Option<R
     let (distance1, distance2) = calculate_intersection_distances(arc1, arc2);
 
     // Determine whether both distances are within both arcs
-    if (Radians(0.0)..=arc1.length()).contains(&distance1)
-        && (Radians(0.0)..=arc2.length()).contains(&distance2)
+    if vector::intersection::is_within(distance1.0, arc1.length().0)
+        && vector::intersection::is_within(distance2.0, arc2.length().0)
     {
         Some(distance1)
     } else {
