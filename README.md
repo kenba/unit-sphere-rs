@@ -59,6 +59,32 @@ and the `vector` module performs vector geometry calculations.
 The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
 so it can be used in embedded applications.
 
+## Example
+
+The following example calculates the intersection between two Great Circle `Arc`s.  
+The values are taken from Charles Karney's original solution to
+[Intersection between two geodesic lines](https://sourceforge.net/p/geographiclib/discussion/1026621/thread/21aaff9f/#fe0a).  
+
+```rust no-run
+use unit_sphere::{Arc, Degrees, LatLong, calculate_intersection_point};
+use angle_sc::is_within_tolerance;
+
+let istanbul = LatLong::new(Degrees(42.0), Degrees(29.0));
+let washington = LatLong::new(Degrees(39.0), Degrees(-77.0));
+let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
+let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
+
+let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
+let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+
+let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+let lat_long = LatLong::from(&intersection_point);
+// Geodesic intersection latitude is 54.7170296089477
+assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
+// Geodesic intersection longitude is -14.56385574430775
+assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
+```
+
 ## Contribution
 
 If you want to contribute through code or documentation, the [Contributing](CONTRIBUTING.md) guide is the best place to start. If you have any questions, please feel free to ask.

@@ -18,38 +18,42 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//! The `intersection` module contains functions for calculating great circle
+//! The `intersection` module contains functions for calculating great-circle
 //! intersections using vectors.
 //!
-//! A pair of great circles intersect at two points unless they are the same
-//! (or opposing) great circles.  
+//! A pair of great circles intersect at two points unless they are coincident.  
 //! For example, points `u` and `v` in *Figure1*.
 //!
 //! ![great circle path](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Illustration_of_great-circle_distance.svg/220px-Illustration_of_great-circle_distance.svg.png)  
 //! *Figure 1 A pair of intersecting great circles*
 //!
-//! A great circle intersection point can simply be calculated from the
-//! [cross product](https://en.wikipedia.org/wiki/Cross_product) of their pole
-//! vectors.
+//! A great circle intersection point can simply be calculated by normalizing
+//! the [cross product](https://en.wikipedia.org/wiki/Cross_product) of their
+//! pole vectors.  
 //! If the resulting vector is too small to normalize, then the great circles
-//! are the same or opposing, in which case they effectively *intersect*
-//! everywhere.
+//! are coincident, in which case they effectively *intersect* everywhere.
 //!
-//! The tricky part is choosing which of the two intersection points to use.  
-//! Most of the functions in this module perform that task.
+//! If a pair of `Arc`s are on coincident great circles,
+//! `calculate_coincident_arc_distances` calculates the distances between
+//! `Arc` ends, zero if the `Arc`s overlap.
+//! 
+//! Otherwise `closest_intersection_point` determines which intersection point
+//! is closer to the [centroid](https://en.wikipedia.org/wiki/Centroid)
+//! of the `Arc`s midpoints, normalized to lie on the surface of the sphere.
+//! `calculate_intersection_distances` then calculates great-circle distances
+//! along the `Arc`s to the intersection point.
 
-use super::{distance, normalize, sin_atd, sq_distance, Vector3d, MIN_SQ_DISTANCE};
-use crate::great_circle;
+use super::{calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE};
 use angle_sc::{max, Radians};
 
 /// Calculate an intersection point between the poles of two Great Circles.  
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>  
 /// * `pole1`, `pole2` the poles.
 ///
-/// return an intersection point or None if the poles are the same (or opposing) Great Circles.
+/// return an intersection point or None if the poles represent coincident Great Circles.
 #[must_use]
 pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
-    normalize(&pole1.cross(pole2))
+    normalise(&pole1.cross(pole2))
 }
 
 /// Calculate the great circle distances to an intersection point from the
@@ -68,27 +72,10 @@ pub fn calculate_intersection_distances(
     pole2: &Vector3d,
     c: &Vector3d,
 ) -> (Radians, Radians) {
-    let sq_d_a1c = sq_distance(a1, c);
-    let gc_d_a1c = if sq_d_a1c < MIN_SQ_DISTANCE {
-        0.0
-    } else {
-        libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_d_a1c)).0,
-            sin_atd(a1, pole1, c).0,
-        )
-    };
-
-    let sq_d_a2c = sq_distance(a2, c);
-    let gc_d_a2c = if sq_d_a2c < MIN_SQ_DISTANCE {
-        0.0
-    } else {
-        libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_d_a2c)).0,
-            sin_atd(a2, pole2, c).0,
-        )
-    };
-
-    (Radians(gc_d_a1c), Radians(gc_d_a2c))
+    (
+        calculate_great_circle_atd(a1, pole1, c),
+        calculate_great_circle_atd(a2, pole2, c),
+    )
 }
 
 /// Whether an intersection point is within an `Arc`.
@@ -101,196 +88,100 @@ pub fn is_within(distance: f64, length: f64) -> bool {
     (-f64::EPSILON <= distance) && (distance <= length + (f64::EPSILON * (1.0 + length)))
 }
 
-/// Determine whether the other intersection point is closer to the start
-/// of both arcs.
-/// * `ref1_distance`, `ref2_distance` the intersection distances.
-/// * `arc1_length`, `arc2_length` the arc lengths.
-///
-/// return true if the other intersection point is closer to the arc starts,
-/// false otherwise.
-#[allow(clippy::similar_names)]
-#[allow(clippy::if_not_else)]
-#[must_use]
-fn use_other_point(
-    ref1_distance: Radians,
-    ref2_distance: Radians,
-    arc1_length: Radians,
-    arc2_length: Radians,
-) -> bool {
-    // is the intersection within both arcs?
-    let c_within_arc1 = is_within(ref1_distance.0, arc1_length.0);
-    let c_within_arc2 = is_within(ref2_distance.0, arc2_length.0);
-    if c_within_arc1 && c_within_arc2 {
-        return false;
-    }
-
-    // Calculate distances from the other intersection point
-    let other_distance1 = ref1_distance + Radians(core::f64::consts::PI);
-    let other_distance2 = ref2_distance + Radians(core::f64::consts::PI);
-
-    // is the other intersection within both arcs?
-    let d_within_arc1 = is_within(other_distance1.0, arc1_length.0);
-    let d_within_arc2 = is_within(other_distance2.0, arc2_length.0);
-    if d_within_arc1 && d_within_arc2 {
-        return true;
-    }
-
-    // if either intersection is within an arc
-    let c_within_arc = c_within_arc1 || c_within_arc2;
-    let d_within_arc = d_within_arc1 || d_within_arc2;
-    if c_within_arc != d_within_arc {
-        // whichever intersection is within an arc is closest
-        d_within_arc
-    } else {
-        // either both intersections are within an arc or neither are
-
-        // calculate the minimum length from a start point to an intersection
-        fn min_length(ref_length: Radians, within_arc: bool) -> f64 {
-            if within_arc {
-                0.0
-            } else {
-                ref_length.abs().0
-            }
-        }
-
-        let min_c1 = min_length(ref1_distance, c_within_arc1);
-        let min_c2 = min_length(ref2_distance, c_within_arc2);
-        let max_c = max(min_c1, min_c2);
-        let min_d1 = min_length(other_distance1, d_within_arc1);
-        let min_d2 = min_length(other_distance2, d_within_arc2);
-        let max_d = max(min_d1, min_d2);
-
-        // use the intersection that is closest to the start of both arcs
-        max_d < max_c
-    }
-}
-
-/// Calculate the great circle distances to the closest intersection point from the
-/// start points of a pair of great circle arcs, on different great circles.
-/// * `a1`, `a2` the start points of the great circle arcs
-/// * `pole1`, `pole2` the poles of the great circle arcs
-/// * `c` an intersection point
-///
-/// returns a pair of great circle distances along the arcs to the
-/// intersection point in `Radians` and a boolean indicating whether the antipodal
-/// intersection point was used instead of the one given.
-#[must_use]
-pub fn calculate_closest_intersection_distances(
-    a1: &Vector3d,
-    pole1: &Vector3d,
-    length1: Radians,
-    a2: &Vector3d,
-    pole2: &Vector3d,
-    length2: Radians,
-    c: &Vector3d,
-) -> (Radians, Radians, bool) {
-    let (arc1_a_c, arc2_a_c) = calculate_intersection_distances(a1, pole1, a2, pole2, c);
-
-    let use_antipodal_intersection = use_other_point(arc1_a_c, arc2_a_c, length1, length2);
-    if use_antipodal_intersection {
-        let (arc1_a_c, arc2_a_c) = calculate_intersection_distances(a1, pole1, a2, pole2, &-(*c));
-        (arc1_a_c, arc2_a_c, use_antipodal_intersection)
-    } else {
-        (arc1_a_c, arc2_a_c, use_antipodal_intersection)
-    }
-}
-
-/// Calculate the lengths along a pair of Arcs on the same (or reciprocal)
+/// Calculate the great-circle distances along a pair of `Arc`s on coincident
 /// Great Circles to their closest (reference) points.
+/// * `gc_d` the great-circle distance between the arc start points.
 /// * `reciprocal` whether the arcs are in reciprocal directions.
-/// * `a2_ahead` whether the start of arc2 is ahead of the start of arc1.
-/// * `arc1_length`, `arc2_length` the arc lengths.
-/// * `gc_d` the great circle distance between the arc start points.
+/// * `arc1_length`, `arc2_length` the `Arc` lengths in `Radians`.
 ///
-/// returns the distances along the first arc and second arc to their closest
+/// returns the distances along the first `Arc` and second `Arc` to their closest
 /// (reference) points in `Radians`.
 #[must_use]
-fn calc_same_gc_reference_lengths(
+pub fn calculate_coincident_arc_distances(
+    gc_d: Radians,
     reciprocal: bool,
-    a2_ahead: bool,
     arc1_length: Radians,
     arc2_length: Radians,
-    gc_d: Radians,
 ) -> (Radians, Radians) {
     if reciprocal {
-        let max_length = if arc1_length < arc2_length {
-            arc2_length
-        } else {
-            arc1_length
-        };
-        if a2_ahead && (gc_d <= max_length) {
-            return if gc_d <= arc2_length {
+        // if the arcs intersect
+        if is_within(gc_d.0, max(arc1_length, arc2_length).0) {
+            if gc_d <= arc2_length {
+                // The start of the first `Arc` is within the second `Arc`
                 (Radians(0.0), gc_d)
             } else {
+                // The start of the second `Arc` is within the first `Arc`
                 (gc_d, Radians(0.0))
+            }
+        } else {
+            let abs_d = gc_d.abs();
+
+            // The distance between the `Arc` b ends
+            let b_d = abs_d.0 - arc1_length.0 - arc2_length.0;
+            // The distance between the `Arc` b ends around the Great Circle
+            let b_gc_d = if Radians(0.0) < gc_d {
+                b_d
+            } else {
+                core::f64::consts::TAU - b_d
             };
-        }
-
-        // The distance between b ends
-        let b_d = gc_d.0 - arc1_length.0 - arc2_length.0;
-        let b_gc_d = if a2_ahead {
-            b_d
-        } else {
-            core::f64::consts::TAU - b_d
-        };
-
-        if b_gc_d < gc_d.0 {
-            (Radians(b_gc_d + arc1_length.0), arc2_length)
-        } else {
-            (-gc_d, Radians(0.0))
+            if b_gc_d < abs_d.0 {
+                // The end of the second `Arc` is beyond the end of first `Arc`
+                (Radians(b_gc_d) + arc1_length, arc2_length)
+            } else {
+                // The start of the second `Arc` is before the start of first `Arc`
+                (-abs_d, Radians(0.0))
+            }
         }
     } else {
         // The distance to the start of arc2 from the end of arc1
-        let b1a2 = if a2_ahead {
+        let b1a2 = if Radians(0.0) < gc_d {
             gc_d.0 - arc1_length.0
         } else {
-            core::f64::consts::TAU - gc_d.0 - arc1_length.0
+            core::f64::consts::TAU + gc_d.0 - arc1_length.0
         };
         // The distance to the start of arc1 from the end of arc2
-        let b2a1 = if a2_ahead {
+        let b2a1 = if Radians(0.0) < gc_d {
             core::f64::consts::TAU - gc_d.0 - arc2_length.0
         } else {
-            gc_d.0 - arc2_length.0
+            -gc_d.0 - arc2_length.0
         };
         if b2a1 < b1a2 {
+            // The start of the first arc is within the second arc
             (Radians(0.0), Radians(b2a1 + arc2_length.0))
         } else {
+            // The start of the second arc relative to the start of first arc.
             (Radians(b1a2 + arc1_length.0), Radians(0.0))
         }
     }
 }
 
-/// Calculate the distances along a pair of Arcs on the same (or reciprocal)
-/// Great Circles to their closest (reference) points.
-/// * `a1`, `a2` the arc start points.
-/// * `pole1`, `pole1` the arc poles.
-/// * `length1`, `length2` the arc lengths.
+/// Determine the closest intersection point to the centre of the `Arc`s.
+/// * `intersection` a great circle intersection point.
+/// * `centre` the centre of the `Arc`s mid points.
 ///
-/// returns the distances along the first arc and second arc to their closest
-/// (reference) points in `Radians`.
+/// returns `intersection` if `centre` cannot be normalized or `intersection`
+/// and `centre` are in the same hemisphere. Otherwise, it returns the
+/// antipodal intersection point.
 #[must_use]
-pub fn calculate_same_gc_reference_distances(
-    a1: &Vector3d,
-    pole1: &Vector3d,
-    length1: Radians,
-    a2: &Vector3d,
-    pole2: &Vector3d,
-    length2: Radians,
-    gc_d: Radians,
-) -> (Radians, Radians) {
-    let reciprocal = pole1.dot(pole2) < 0.0;
-    let a2_ahead = 0.0 < sin_atd(a1, pole1, a2).0;
-    calc_same_gc_reference_lengths(reciprocal, a2_ahead, length1, length2, gc_d)
+pub fn closest_intersection_point(intersection: &Vector3d, centre: Option<Vector3d>) -> Vector3d {
+    let use_antipodal_point = centre.is_some_and(|x| sq_distance(intersection, &x) > 2.0);
+    if use_antipodal_point {
+        -*intersection
+    } else {
+        *intersection
+    }
 }
 
-/// Calculate the distances along a pair of Arcs on the same (or reciprocal)
-/// Great Circles to their closest (reference) points.
-/// * `a1`, `a2` the arc start points.
-/// * `pole1`, `pole1` the arc poles.
-/// * `length1`, `length2` the arc lengths.
+/// Calculate the great-circle distances along a pair of arcs to their
+/// closest intersection point or their coincident arc distances if the
+/// `Arc`s are on coincident Great Circles.
+/// * `a1`, `a2` the `Arc` start points.
+/// * `pole1`, `pole1` the `Arc` poles.
+/// * `length1`, `length2` the `Arc` lengths.
+/// * `centre` the centre of the `Arc`s mid points.
 ///
 /// returns the distances along the first arc and second arc to the intersection
-/// point or to their closest (reference) points if the arcs do not intersect.
+/// point or to their coincident arc distances if the arcs do not intersect.
 #[must_use]
 pub fn calculate_intersection_point_distances(
     a1: &Vector3d,
@@ -299,19 +190,30 @@ pub fn calculate_intersection_point_distances(
     a2: &Vector3d,
     pole2: &Vector3d,
     length2: Radians,
+    centre: Option<Vector3d>,
 ) -> (Radians, Radians) {
-    // Calculate the great circle distance between the start points.
-    let gc_d = great_circle::e2gc_distance(distance(a1, a2));
-    if gc_d.0 < great_circle::MIN_VALUE {
+    // Calculate the square of the Euclidean distance between the start points.
+    let sq_d = sq_distance(a1, a2);
+    if sq_d < MIN_SQ_DISTANCE {
         (Radians(0.0), Radians(0.0))
     } else {
         calculate_intersection_point(pole1, pole2).map_or_else(
-            || calculate_same_gc_reference_distances(a1, pole1, length1, a2, pole2, length2, gc_d),
+            || {
+                calculate_coincident_arc_distances(
+                    calculate_great_circle_atd(a1, pole1, a2),
+                    pole1.dot(pole2) < 0.0,
+                    length1,
+                    length2,
+                )
+            },
             |c| {
-                let (arc1_a_c, arc2_a_c, _) = calculate_closest_intersection_distances(
-                    a1, pole1, length1, a2, pole2, length2, &c,
-                );
-                (arc1_a_c, arc2_a_c)
+                calculate_intersection_distances(
+                    a1,
+                    pole1,
+                    a2,
+                    pole2,
+                    &closest_intersection_point(&c, centre),
+                )
             },
         )
     }
@@ -368,8 +270,14 @@ mod tests {
         assert!(is_within_tolerance(-3.1169124762478333, c1.0, f64::EPSILON));
         assert!(is_within_tolerance(-3.1169124762478333, c2.0, f64::EPSILON));
 
+        // Calculate the centre of the arc start points
+        let centre_point = vector::normalise(&(a1 + a2)).unwrap();
+        assert!(sq_distance(&c, &centre_point) > 2.0);
+
         // opposite intersection point
         let d = -c;
+        assert!(sq_distance(&d, &centre_point) <= 2.0);
+
         let (d1, d2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &d);
         assert!(is_within_tolerance(
             0.024680177341956263,
@@ -397,111 +305,44 @@ mod tests {
     }
 
     #[test]
-    fn test_use_other_point() {
-        // Within both arcs
-        assert!(!use_other_point(
-            Radians(1.0),
-            Radians(1.0),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-
-        // Within an arc
-        assert!(!use_other_point(
-            Radians(2.0),
-            Radians(1.0),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-
-        // Other within both arcs
-        assert!(use_other_point(
-            Radians(0.5 - core::f64::consts::PI),
-            Radians(0.5 - core::f64::consts::PI),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-
-        // Other within an arc
-        assert!(use_other_point(
-            Radians(0.5 - core::f64::consts::PI),
-            Radians(2.0),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-
-        // This closest within an arc
-        assert!(!use_other_point(
-            Radians(1.0),
-            Radians(2.0 - core::f64::consts::PI),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-
-        // Other closest within an arc
-        assert!(use_other_point(
-            Radians(1.5),
-            Radians(core::f64::consts::PI),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-
-        // This closest both within an arc
-        assert!(!use_other_point(
-            Radians(1.0),
-            Radians(1.0 - core::f64::consts::PI),
-            Radians(2.0),
-            Radians(1.0)
-        ));
-
-        // Other closest both outside an arc
-        assert!(use_other_point(
-            Radians(2.0),
-            Radians(1.5 - core::f64::consts::PI),
-            Radians(1.0),
-            Radians(1.0)
-        ));
-    }
-
-    #[test]
-    fn test_calc_same_gc_reference_lengths_1() {
+    fn test_calculate_coincident_arc_distances() {
         let zero = Radians(0.0);
         let length1 = Radians(0.25);
         let length2 = Radians(0.75);
 
-        let result0 = calc_same_gc_reference_lengths(true, true, length2, length1, length2);
+        let result0 = calculate_coincident_arc_distances(length2, true, length2, length1);
         assert_eq!(length2, result0.0);
         assert_eq!(zero, result0.1);
 
-        let result1 = calc_same_gc_reference_lengths(true, true, length1, length2, length2);
+        let result1 = calculate_coincident_arc_distances(length2, true, length1, length2);
         assert_eq!(zero, result1.0);
         assert_eq!(length2, result1.1);
 
-        let result2 = calc_same_gc_reference_lengths(true, true, length1, length2, Radians(1.0));
+        let result2 = calculate_coincident_arc_distances(Radians(1.0), true, length1, length2);
         assert_eq!(length1, result2.0);
         assert_eq!(length2, result2.1);
 
-        let result3 = calc_same_gc_reference_lengths(true, true, length1, length2, Radians(1.5));
+        let result3 = calculate_coincident_arc_distances(Radians(1.5), true, length1, length2);
         assert_eq!(length2, result3.0);
         assert_eq!(length2, result3.1);
 
-        let result4 = calc_same_gc_reference_lengths(true, false, length1, length2, Radians(1.5));
+        let result4 = calculate_coincident_arc_distances(Radians(-1.5), true, length1, length2);
         assert_eq!(Radians(-1.5), result4.0);
         assert_eq!(zero, result4.1);
 
-        let result5 = calc_same_gc_reference_lengths(false, false, length1, length2, Radians(1.0));
+        let result5 = calculate_coincident_arc_distances(Radians(-1.0), false, length1, length2);
         assert_eq!(zero, result5.0);
         assert_eq!(Radians(1.0), result5.1);
 
-        let result6 = calc_same_gc_reference_lengths(false, true, length1, length2, Radians(1.0));
+        let result6 = calculate_coincident_arc_distances(Radians(1.0), false, length1, length2);
         assert_eq!(Radians(1.0), result6.0);
         assert_eq!(zero, result6.1);
 
-        let result7 = calc_same_gc_reference_lengths(false, false, length1, length2, length2);
+        let result7 = calculate_coincident_arc_distances(-length2, false, length1, length2);
         assert_eq!(zero, result7.0);
         assert_eq!(length2, result7.1);
 
-        let result8 = calc_same_gc_reference_lengths(false, true, length1, length2, length1);
+        let result8 = calculate_coincident_arc_distances(length1, false, length1, length2);
         assert_eq!(length1, result8.0);
         assert_eq!(zero, result8.1);
     }

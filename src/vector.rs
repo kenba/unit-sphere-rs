@@ -19,8 +19,10 @@
 // THE SOFTWARE.
 
 //! The `vector` module contains functions for performing great circle
-//! calculations using vectors to represent points and great circle poles on a
-//! unit sphere.
+//! calculations using `Vector3d`s to represent points and great circle poles
+//! on a unit sphere.  
+//!
+//! A `Vector3d` is a [nalgebra](https://crates.io/crates/nalgebra) `Vector3<f64>`.
 
 use crate::{great_circle, Vector3d};
 use angle_sc::{trig, Angle, Radians};
@@ -76,12 +78,14 @@ pub fn is_unit(a: &Vector3d) -> bool {
     (MIN_POINT_SQ_LENGTH..=MAX_POINT_SQ_LENGTH).contains(&(a.norm_squared()))
 }
 
-/// Normalize a point to lie on the surface of the unit sphere.  
+/// Normalize a vector to lie on the surface of the unit sphere.  
+/// Note: this function returns an `Option` so uses the British spelling of
+/// `normalise` to differentiate it from the standard `normalize` function.  
 /// * `a` the `Vector3d`
 ///
-/// return the nomalized point or None if the point is too small to normalize.
+/// return the nomalized point or None if the vector is too small to normalize.
 #[must_use]
-pub fn normalize(a: &Vector3d) -> Option<Vector3d> {
+pub fn normalise(a: &Vector3d) -> Option<Vector3d> {
     /// The minimum length of a vector to normalize.
     const MIN_LENGTH: f64 = 16384.0 * f64::EPSILON;
     const MIN_NORM: f64 = MIN_LENGTH * MIN_LENGTH;
@@ -234,15 +238,6 @@ pub fn position(a: &Vector3d, dir: &Vector3d, distance: Angle) -> Vector3d {
     distance.cos().0 * a + distance.sin().0 * dir
 }
 
-/// Calculate the mean position of a slice of points on a unit sphere.
-/// * `points` - the points.
-///
-/// returns the mean position vector or None if the sum of points is antipodal.
-#[must_use]
-pub fn mean_position(points: &[Vector3d]) -> Option<Vector3d> {
-    normalize(&points.iter().sum())
-}
-
 /// Calculate the direction vector of a Great Circle rotated by angle.
 /// * `dir` - the direction vector of a Great Circle arc.
 /// * `pole` - the pole of a Great Circle.
@@ -302,14 +297,15 @@ pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
 #[must_use]
 pub fn sq_cross_track_distance(pole: &Vector3d, point: &Vector3d) -> f64 {
     let sin_d = sin_xtd(pole, point);
-    if libm::fabs(sin_d.0) < great_circle::MIN_VALUE {
+    if libm::fabs(sin_d.0) < f64::EPSILON {
         0.0
     } else {
         2.0 * (1.0 - trig::swap_sin_cos(sin_d).0)
     }
 }
 
-/// Calculate the closest point on a plane to the given point.
+/// Calculate the closest point on a plane to the given point.  
+/// See: [Closest Point on Plane](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter1/closest_point_on_plane.html)  
 /// * `pole` - the Great Circle pole (aka normal) of the plane.
 /// * `point` - the point.
 ///
@@ -318,29 +314,6 @@ pub fn sq_cross_track_distance(pole: &Vector3d, point: &Vector3d) -> f64 {
 fn calculate_point_on_plane(pole: &Vector3d, point: &Vector3d) -> Vector3d {
     let t = sin_xtd(pole, point);
     point - pole * t.0
-}
-
-/// Calculate the square of the Euclidean along track distance of a point
-/// from the start of an Arc.
-/// It is calculated using the closest point on the plane to the point.
-/// * `a` - the start point of the Great Circle arc.
-/// * `pole` - the pole of the Great Circle arc.
-/// * `point` - the point.
-/// returns the square of the Euclidean along track distance
-#[must_use]
-pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {
-    let plane_point = calculate_point_on_plane(pole, point);
-    normalize(&plane_point).map_or_else(
-        || 0.0, // point is too close to a pole
-        |c| {
-            let sq_d = sq_distance(a, &(c));
-            if sq_d < MIN_SQ_DISTANCE {
-                0.0
-            } else {
-                sq_d
-            }
-        },
-    )
 }
 
 /// The sine of the along track distance of a point along a Great Circle arc.  
@@ -357,6 +330,25 @@ pub fn sin_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> trig::UnitNeg
     trig::UnitNegRange::clamp(pole.cross(a).dot(point))
 }
 
+/// Calculate the relative distance of two points on a Great Circle arc.
+/// @pre both points must be on the Great Circle defined by `pole`.
+/// * `a` - the start point of the Great Circle arc.
+/// * `pole` - the pole of the Great Circle arc.
+/// * `point` - a point in the Great Circle.
+/// returns the Great Circle along track distance in `Radians`.
+#[must_use]
+pub fn calculate_great_circle_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> Radians {
+    let sq_atd = sq_distance(a, point);
+    if sq_atd < MIN_SQ_DISTANCE {
+        Radians(0.0)
+    } else {
+        Radians(libm::copysign(
+            great_circle::e2gc_distance(libm::sqrt(sq_atd)).0,
+            sin_atd(a, pole, point).0,
+        ))
+    }
+}
+
 /// The Great Circle distance of a point along the arc relative to a,
 /// (+ve) ahead of a, (-ve) behind a.
 /// * `a` - the start point of the Great Circle arc.
@@ -366,15 +358,34 @@ pub fn sin_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> trig::UnitNeg
 /// returns the along track distance of point relative to the start of a great circle arc.
 #[must_use]
 pub fn along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> Radians {
-    let sq_atd = sq_along_track_distance(a, pole, point);
-    if sq_atd < MIN_SQ_DISTANCE {
-        Radians(0.0)
-    } else {
-        Radians(libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_atd)).0,
-            sin_atd(a, pole, point).0,
-        ))
-    }
+    let plane_point = calculate_point_on_plane(pole, point);
+    normalise(&plane_point).map_or_else(
+        || Radians(0.0), // point is too close to a pole
+        |c| calculate_great_circle_atd(a, pole, &c),
+    )
+}
+
+/// Calculate the square of the Euclidean along track distance of a point
+/// from the start of an Arc.
+/// It is calculated using the closest point on the plane to the point.
+/// * `a` - the start point of the Great Circle arc.
+/// * `pole` - the pole of the Great Circle arc.
+/// * `point` - the point.
+/// returns the square of the Euclidean along track distance
+#[must_use]
+pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {
+    let plane_point = calculate_point_on_plane(pole, point);
+    normalise(&plane_point).map_or_else(
+        || 0.0, // point is too close to a pole
+        |c| {
+            let sq_d = sq_distance(a, &(c));
+            if sq_d < MIN_SQ_DISTANCE {
+                0.0
+            } else {
+                sq_d
+            }
+        },
+    )
 }
 
 /// Calculate Great Circle along and across track distances.
@@ -400,17 +411,10 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
 
         // the closest point on the plane of the pole to the point
         let plane_point = p - pole * sin_xtd;
-        let sq_atd = normalize(&plane_point).map_or_else(
-            || 0.0, // point is too close to a pole
-            |c| sq_distance(a, &(c)),
+        atd = normalise(&plane_point).map_or_else(
+            || Radians(0.0), // point is too close to a pole
+            |c| calculate_great_circle_atd(a, pole, &c),
         );
-
-        if sq_atd >= MIN_SQ_DISTANCE {
-            atd = Radians(libm::copysign(
-                great_circle::e2gc_distance(libm::sqrt(sq_atd)).0,
-                sin_atd(a, pole, p).0,
-            ));
-        }
     }
 
     (atd, xtd)
@@ -423,21 +427,21 @@ mod tests {
     use angle_sc::{is_within_tolerance, Degrees, Radians};
 
     #[test]
-    fn test_normalize() {
+    fn test_normalise() {
         let zero = Vector3d::new(0.0, 0.0, 0.0);
-        assert!(normalize(&zero).is_none());
+        assert!(normalise(&zero).is_none());
 
         // Greenwich equator
         let g_eq = Vector3d::new(1.0, 0.0, 0.0);
-        assert!(normalize(&g_eq).is_some());
+        assert!(normalise(&g_eq).is_some());
 
         // A vector just too small to normalize
         let too_small = Vector3d::new(16383.0 * f64::EPSILON, 0.0, 0.0);
-        assert!(normalize(&too_small).is_none());
+        assert!(normalise(&too_small).is_none());
 
         // A vector just large enough to normalize
         let small = Vector3d::new(16384.0 * f64::EPSILON, 0.0, 0.0);
-        let result = normalize(&small);
+        let result = normalise(&small);
         assert!(result.is_some());
 
         assert!(is_unit(&result.unwrap()));
@@ -647,24 +651,6 @@ mod tests {
 
         let pos_3 = rotate_position(&g_eq, &pole_0, angle_90, angle_90);
         assert_eq!(pole_0, pos_3);
-
-        // mean_position is on Equator at 45 degrees East.
-        let pos_4 = mean_position(&[g_eq, e_eq]).unwrap();
-        assert!(is_within_tolerance(
-            pos_4.x,
-            core::f64::consts::FRAC_1_SQRT_2,
-            f64::EPSILON
-        ));
-        assert!(is_within_tolerance(
-            pos_4.y,
-            core::f64::consts::FRAC_1_SQRT_2,
-            f64::EPSILON
-        ));
-
-        // Test mean_position of antipodal points
-        let w_eq = -e_eq;
-        let antipodal_mean = mean_position(&[e_eq, w_eq]);
-        assert!(antipodal_mean.is_none());
     }
 
     #[test]
@@ -762,7 +748,8 @@ mod tests {
 
         let pole_0 = g_eq.cross(&e_eq);
 
-        assert_eq!(0.0, along_track_distance(&g_eq, &pole_0, &g_eq).0);
+        // points are at the poles, so atc and sq_atd are zero
+        assert_eq!(0.0, along_track_distance(&g_eq, &pole_0, &pole_0).0);
         assert_eq!(0.0, sq_along_track_distance(&g_eq, &pole_0, &pole_0));
 
         let (atd, xtd) = calculate_atd_and_xtd(&g_eq, &pole_0, &g_eq);

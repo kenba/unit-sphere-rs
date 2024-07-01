@@ -13,9 +13,9 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-angle-sc = "0.1"
+angle-sc = "0.2"
 libm = "0.2"
-nalgebra = "0.32"
+nalgebra = "0.33"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 
 [dev-dependencies]

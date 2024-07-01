@@ -73,6 +73,32 @@
 //!
 //! The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
 //! so it can be used in embedded applications.
+//!
+//! ## Example
+//!
+//! The following example calculates the intersection between two Great Circle `Arc`s
+//! it is taken from Charles Karney's original solution to
+//! [Intersection between two geodesic lines](https://sourceforge.net/p/geographiclib/discussion/1026621/thread/21aaff9f/#fe0a).
+//!
+//! ```rust
+//! use unit_sphere::{Arc, Degrees, LatLong, calculate_intersection_point};
+//! use angle_sc::is_within_tolerance;
+//!
+//! let istanbul = LatLong::new(Degrees(42.0), Degrees(29.0));
+//! let washington = LatLong::new(Degrees(39.0), Degrees(-77.0));
+//! let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
+//! let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
+//!
+//! let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
+//! let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+//!
+//! let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+//! let lat_long = LatLong::from(&intersection_point);
+//! // Geodesic intersection latitude is 54.7170296089477
+//! assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
+//! // Geodesic intersection longitude is -14.56385574430775
+//! assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
+//! ```
 
 #![cfg_attr(not(test), no_std)]
 
@@ -154,7 +180,7 @@ impl TryFrom<(f64, f64)> for LatLong {
 /// point a.
 /// * `a`, `b` - the start and end positions
 ///
-/// returns the Great Circle azimuth relative to North and distance of point b
+/// returns the great-circle azimuth relative to North and distance of point b
 /// from point a.
 #[must_use]
 pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radians) {
@@ -167,7 +193,7 @@ pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radia
     )
 }
 
-/// A `Vector3d` is a nalgebra Vector3.
+/// A `Vector3d` is a [nalgebra](https://crates.io/crates/nalgebra) `Vector3<f64>`.
 #[allow(clippy::module_name_repetitions)]
 pub type Vector3d = na::Vector3<f64>;
 
@@ -198,7 +224,7 @@ pub fn longitude(a: &Vector3d) -> Angle {
 }
 
 impl From<&Vector3d> for LatLong {
-    /// Convert a Point to a `LatLong`  
+    /// Convert a point to a `LatLong`  
     #[must_use]
     fn from(value: &Vector3d) -> Self {
         Self::new(
@@ -208,21 +234,21 @@ impl From<&Vector3d> for LatLong {
     }
 }
 
-/// An arc of a Great Circle on a unit sphere.
+/// An `Arc` of a Great Circle on a unit sphere.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Arc {
-    /// The start point of the arc.
+    /// The start point of the `Arc`.
     a: Vector3d,
-    /// The right hand pole of the Great Circle of the arc.
+    /// The right hand pole of the Great Circle of the `Arc`.
     pole: Vector3d,
-    /// The length of the arc.
+    /// The length of the `Arc`.
     length: Radians,
-    /// The half width of the arc.
+    /// The half width of the `Arc`.
     half_width: Radians,
 }
 
 impl Validate for Arc {
-    /// Test whether an Arc is valid.
+    /// Test whether an `Arc` is valid.
     /// I.e. both a and pole are on the unit sphere and are orthogonal and
     /// both length and `half_width` are >= 0.0.
     fn is_valid(&self) -> bool {
@@ -235,11 +261,11 @@ impl Validate for Arc {
 }
 
 impl Arc {
-    /// Construct an Arc
-    /// * `a` - the start point of the arc.
-    /// * `pole` - the right hand pole of the Great Circle of the arc.
-    /// * `length` - the length of the arc.
-    /// * `half_width` - the half width of the arc.
+    /// Construct an `Arc`
+    /// * `a` - the start point of the `Arc`.
+    /// * `pole` - the right hand pole of the Great Circle of the `Arc`.
+    /// * `length` - the length of the `Arc`.
+    /// * `half_width` - the half width of the `Arc`.
     #[must_use]
     pub const fn new(a: Vector3d, pole: Vector3d, length: Radians, half_width: Radians) -> Self {
         Self {
@@ -250,10 +276,10 @@ impl Arc {
         }
     }
 
-    /// Construct an Arc
+    /// Construct an `Arc`
     /// * `a` - the start position
     /// * `azimuth` - the azimuth at a.
-    /// * `length` - the length of the arc.
+    /// * `length` - the length of the `Arc`.
     #[must_use]
     pub fn from_lat_lon_azi_length(a: &LatLong, azimuth: Angle, length: Radians) -> Self {
         Self::new(
@@ -264,7 +290,7 @@ impl Arc {
         )
     }
 
-    /// Construct an Arc from the start and end positions.  
+    /// Construct an `Arc` from the start and end positions.  
     /// Note: if the points are the same or antipodal, the pole will be invalid.
     /// * `a`, `b` - the start and end positions
     #[must_use]
@@ -280,33 +306,33 @@ impl Arc {
         }
     }
 
-    /// Set the `half_width` of an Arc
-    /// * `half_width` - the half width of the arc.
+    /// Set the `half_width` of an `Arc`
+    /// * `half_width` - the half width of the `Arc`.
     #[must_use]
     pub fn set_half_width(&mut self, half_width: Radians) -> &mut Self {
         self.half_width = half_width;
         self
     }
 
-    /// The start point of the arc.
+    /// The start point of the `Arc`.
     #[must_use]
     pub const fn a(&self) -> Vector3d {
         self.a
     }
 
-    /// The right hand pole of the Great Circle at the start point of the arc.
+    /// The right hand pole of the Great Circle at the start point of the `Arc`.
     #[must_use]
     pub const fn pole(&self) -> Vector3d {
         self.pole
     }
 
-    /// The length of the arc.
+    /// The length of the `Arc`.
     #[must_use]
     pub const fn length(&self) -> Radians {
         self.length
     }
 
-    /// The half width of the arc.
+    /// The half width of the `Arc`.
     #[must_use]
     pub const fn half_width(&self) -> Radians {
         self.half_width
@@ -318,7 +344,7 @@ impl Arc {
         vector::calculate_azimuth(&self.a, &self.pole)
     }
 
-    /// The direction vector of the arc at the start point.
+    /// The direction vector of the `Arc` at the start point.
     #[must_use]
     pub fn direction(&self) -> Vector3d {
         vector::direction(&self.a, &self.pole)
@@ -329,21 +355,21 @@ impl Arc {
         vector::position(&self.a, &self.direction(), Angle::from(distance))
     }
 
-    /// The end point of the arc.
+    /// The end point of the `Arc`.
     #[must_use]
     pub fn b(&self) -> Vector3d {
         self.position(self.length)
     }
 
-    /// The mid point of the arc.
+    /// The mid point of the `Arc`.
     #[must_use]
     pub fn mid_point(&self) -> Vector3d {
         self.position(Radians(0.5 * self.length.0))
     }
 
-    /// The position of a perpendicular point at distance from the arc.
-    /// * `point` a point on the arc's great circle.
-    /// * `distance` the perpendicular distance from the arc's great circle.
+    /// The position of a perpendicular point at distance from the `Arc`.
+    /// * `point` a point on the `Arc`'s great circle.
+    /// * `distance` the perpendicular distance from the `Arc`'s great circle.
     ///
     /// returns the point at perpendicular distance from point.
     #[must_use]
@@ -351,19 +377,19 @@ impl Arc {
         vector::position(point, &self.pole, Angle::from(distance))
     }
 
-    /// The position of a point at angle from the arc start, at arc length.
-    /// * `angle` the angle from the arc start.
+    /// The position of a point at angle from the `Arc` start, at `Arc` length.
+    /// * `angle` the angle from the `Arc` start.
     ///
-    /// returns the point at angle from the arc start, at arc length.
+    /// returns the point at angle from the `Arc` start, at `Arc` length.
     #[must_use]
     pub fn angle_position(&self, angle: Angle) -> Vector3d {
         vector::rotate_position(&self.a, &self.pole, angle, Angle::from(self.length))
     }
 
-    /// The Arc at the end of an Arc, just the point if `half_width` is zero.
-    /// @param `at_b` if true the arc at b, else the arc at a.
+    /// The `Arc` at the end of an `Arc`, just the point if `half_width` is zero.
+    /// @param `at_b` if true the `Arc` at b, else the `Arc` at a.
     ///
-    /// @return the end arc at a or b.
+    /// @return the end `Arc` at a or b.
     #[must_use]
     pub fn end_arc(&self, at_b: bool) -> Self {
         let p = if at_b { self.b() } else { self.a };
@@ -376,8 +402,8 @@ impl Arc {
         }
     }
 
-    /// Calculate Great Circle along and across track distances of point from
-    /// the Arc.
+    /// Calculate great-circle along and across track distances of point from
+    /// the `Arc`.
     /// * `point` - the point.
     ///
     /// returns the along and across track distances of the point in Radians.
@@ -390,14 +416,14 @@ impl Arc {
 impl TryFrom<(&LatLong, &LatLong)> for Arc {
     type Error = &'static str;
 
-    /// Construct an Arc from a pair of positions.  
+    /// Construct an `Arc` from a pair of positions.  
     /// * `params` - the start and end positions
     fn try_from(params: (&LatLong, &LatLong)) -> Result<Self, Self::Error> {
         // Convert positions to vectors
         let a = Vector3d::from(params.0);
         let b = Vector3d::from(params.1);
         // Calculate the great circle pole
-        vector::normalize(&a.cross(&b)).map_or_else(
+        vector::normalise(&a.cross(&b)).map_or_else(
             || {
                 if vector::sq_distance(&a, &b) < 1.0 {
                     Err("Positions are too close")
@@ -417,12 +443,13 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
     }
 }
 
-/// Calculate the distances along a pair of Arcs on the same (or reciprocal)
-/// Great Circles to their closest intersection or reference points.
-/// * `arc1`, `arc2` the arcs.
+/// Calculate the great-circle distances along a pair of `Arc`s to their
+/// closest intersection point or their coincident arc distances if the
+/// `Arc`s are on coincident Great Circles.
+/// * `arc1`, `arc2` the `Arc`s.
 ///
-/// returns the distances along the first arc and second arc to the intersection
-/// point or to their closest (reference) points if the arcs do not intersect.
+/// returns the distances along the first `Arc` and second `Arc` to the intersection
+/// point or to their coincident arc distances if the `Arc`s do not intersect.
 #[must_use]
 pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Radians) {
     vector::intersection::calculate_intersection_point_distances(
@@ -432,23 +459,50 @@ pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Rad
         &arc2.a,
         &arc2.pole,
         arc2.length(),
+        vector::normalise(&(arc1.mid_point() + arc2.mid_point())),
     )
 }
 
-/// Calculate whether a pair of Arcs intersect and (if so) where.
-/// * `arc1`, `arc2` the arcs.
+/// Calculate whether a pair of `Arc`s intersect and (if so) where.
+/// * `arc1`, `arc2` the `Arc`s.
 ///
-/// returns the distance along the first arc to the second arc or None if they
+/// returns the distance along the first `Arc` to the second `Arc` or None if they
 /// don't intersect.
+///
+/// # Examples
+/// ```
+/// use unit_sphere::{Arc, Degrees, LatLong, calculate_intersection_point};
+/// use angle_sc::is_within_tolerance;
+///
+/// let istanbul = LatLong::new(Degrees(42.0), Degrees(29.0));
+/// let washington = LatLong::new(Degrees(39.0), Degrees(-77.0));
+/// let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
+/// let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
+///
+/// let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
+/// let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+///
+/// // Calculate the intersection point position
+/// let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+/// let lat_long = LatLong::from(&intersection_point);
+///
+/// // The expected latitude and longitude are from:
+/// // <https://sourceforge.net/p/geographiclib/discussion/1026621/thread/21aaff9f/#fe0a>
+///
+/// // Geodesic intersection latitude is 54.7170296089477
+/// assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
+/// // Geodesic intersection longitude is -14.56385574430775
+/// assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
+/// ```
 #[must_use]
-pub fn calculate_intersection_point_distance(arc1: &Arc, arc2: &Arc) -> Option<Radians> {
+pub fn calculate_intersection_point(arc1: &Arc, arc2: &Arc) -> Option<Vector3d> {
     let (distance1, distance2) = calculate_intersection_distances(arc1, arc2);
 
     // Determine whether both distances are within both arcs
     if vector::intersection::is_within(distance1.0, arc1.length().0)
         && vector::intersection::is_within(distance2.0, arc2.length().0)
     {
-        Some(distance1)
+        Some(arc1.position(distance1))
     } else {
         None
     }
@@ -734,9 +788,10 @@ mod tests {
     }
 
     #[test]
-    fn test_arc_intersection_point_length() {
-        // Karney's example
+    fn test_arc_intersection_point() {
+        // Karney's example:
         // Istanbul, Washington, Reyjavik and Accra
+        // from: <https://sourceforge.net/p/geographiclib/discussion/1026621/thread/21aaff9f/#fe0a>
         let istanbul = LatLong::new(Degrees(42.0), Degrees(29.0));
         let washington = LatLong::new(Degrees(39.0), Degrees(-77.0));
         let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
@@ -745,31 +800,24 @@ mod tests {
         let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
         let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
 
-        let intersection_distance = calculate_intersection_point_distance(&arc1, &arc2).unwrap();
-        assert!(is_within_tolerance(
-            0.5406004765152588,
-            intersection_distance.0,
-            f64::EPSILON
-        ));
+        let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+        let lat_long = LatLong::from(&intersection_point);
+        // Geodesic intersection latitude is 54.7170296089477
+        assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
+        // Geodesic intersection longitude is -14.56385574430775
+        assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
 
-        let intersection_distance_other_arc =
-            calculate_intersection_point_distance(&arc2, &arc1).unwrap();
-        assert!(is_within_tolerance(
-            0.17553891720631054,
-            intersection_distance_other_arc.0,
-            f64::EPSILON
-        ));
-
-        let intersection_pos = arc1.position(intersection_distance);
-        let lat_long = LatLong::from(&intersection_pos);
-        // Geodesic intersection latitude is 54.7170296111
-        assert!(is_within_tolerance(54.7, lat_long.lat().0, 0.4));
-        // Geodesic intersection longitude is -14.56385575
+        // Switch arcs
+        let intersection_point = calculate_intersection_point(&arc2, &arc1).unwrap();
+        let lat_long = LatLong::from(&intersection_point);
+        // Geodesic intersection latitude is 54.7170296089477
+        assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
+        // Geodesic intersection longitude is -14.56385574430775
         assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
     }
 
     #[test]
-    fn test_arc_intersection_same_gerat_circles() {
+    fn test_arc_intersection_same_great_circles() {
         let south_pole_1 = LatLong::new(Degrees(-88.0), Degrees(-180.0));
         let south_pole_2 = LatLong::new(Degrees(-87.0), Degrees(0.0));
 
@@ -779,13 +827,13 @@ mod tests {
         assert_eq!(Radians(0.0), intersection_lengths.0);
         assert_eq!(Radians(0.0), intersection_lengths.1);
 
-        let gc_length = calculate_intersection_point_distance(&arc1, &arc1).unwrap();
-        assert_eq!(Radians(0.0), gc_length);
+        let intersection_point = calculate_intersection_point(&arc1, &arc1).unwrap();
+        assert_eq!(0.0, vector::sq_distance(&arc1.a(), &intersection_point));
 
         let south_pole_3 = LatLong::new(Degrees(-85.0), Degrees(0.0));
         let south_pole_4 = LatLong::new(Degrees(-86.0), Degrees(0.0));
         let arc2 = Arc::try_from((&south_pole_3, &south_pole_4)).unwrap();
-        let intersection_length = calculate_intersection_point_distance(&arc1, &arc2);
-        assert!(intersection_length.is_none());
+        let intersection_point = calculate_intersection_point(&arc1, &arc2);
+        assert!(intersection_point.is_none());
     }
 }
