@@ -36,10 +36,10 @@
 //! If a pair of `Arc`s are on coincident great circles,
 //! `calculate_coincident_arc_distances` calculates the distances between
 //! `Arc` ends, zero if the `Arc`s overlap.
-//! 
-//! Otherwise `closest_intersection_point` determines which intersection point
+//!
+//! Otherwise `use_antipodal_point` determines which intersection point
 //! is closer to the [centroid](https://en.wikipedia.org/wiki/Centroid)
-//! of the `Arc`s midpoints, normalized to lie on the surface of the sphere.
+//! of the `Arc`s midpoints.
 //! `calculate_intersection_distances` then calculates great-circle distances
 //! along the `Arc`s to the intersection point.
 
@@ -155,21 +155,17 @@ pub fn calculate_coincident_arc_distances(
     }
 }
 
-/// Determine the closest intersection point to the centre of the `Arc`s.
-/// * `intersection` a great circle intersection point.
-/// * `centre` the centre of the `Arc`s mid points.
+/// Determine whether the antipodal point is closer to the centroid of the
+/// `Arc`s.
 ///
-/// returns `intersection` if `centre` cannot be normalized or `intersection`
-/// and `centre` are in the same hemisphere. Otherwise, it returns the
-/// antipodal intersection point.
+/// * `point` a great-circle intersection point.
+/// * `centroid` the centroid (geometric mean) of the `Arc`s mid points.
+///
+/// returns true if the antipodal intersection is closer to the `centroid`
+/// of the `Arc`s otherwise returns false.
 #[must_use]
-pub fn closest_intersection_point(intersection: &Vector3d, centre: Option<Vector3d>) -> Vector3d {
-    let use_antipodal_point = centre.is_some_and(|x| sq_distance(intersection, &x) > 2.0);
-    if use_antipodal_point {
-        -*intersection
-    } else {
-        *intersection
-    }
+pub fn use_antipodal_point(point: &Vector3d, centroid: &Vector3d) -> bool {
+    sq_distance(centroid, &(-*point)) < sq_distance(centroid, point)
 }
 
 /// Calculate the great-circle distances along a pair of arcs to their
@@ -178,7 +174,7 @@ pub fn closest_intersection_point(intersection: &Vector3d, centre: Option<Vector
 /// * `a1`, `a2` the `Arc` start points.
 /// * `pole1`, `pole1` the `Arc` poles.
 /// * `length1`, `length2` the `Arc` lengths.
-/// * `centre` the centre of the `Arc`s mid points.
+/// * `centroid` the centroid (geometric mean) of the `Arc`s mid points.
 ///
 /// returns the distances along the first arc and second arc to the intersection
 /// point or to their coincident arc distances if the arcs do not intersect.
@@ -190,7 +186,7 @@ pub fn calculate_intersection_point_distances(
     a2: &Vector3d,
     pole2: &Vector3d,
     length2: Radians,
-    centre: Option<Vector3d>,
+    centroid: &Vector3d,
 ) -> (Radians, Radians) {
     // Calculate the square of the Euclidean distance between the start points.
     let sq_d = sq_distance(a1, a2);
@@ -207,13 +203,13 @@ pub fn calculate_intersection_point_distances(
                 )
             },
             |c| {
-                calculate_intersection_distances(
-                    a1,
-                    pole1,
-                    a2,
-                    pole2,
-                    &closest_intersection_point(&c, centre),
-                )
+                // Find the closest intersection point
+                let c = if use_antipodal_point(&c, centroid) {
+                    -c
+                } else {
+                    c
+                };
+                calculate_intersection_distances(a1, pole1, a2, pole2, &c)
             },
         )
     }

@@ -459,7 +459,7 @@ pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Rad
         &arc2.a,
         &arc2.pole,
         arc2.length(),
-        vector::normalise(&(arc1.mid_point() + arc2.mid_point())),
+        &(0.5 * (arc1.mid_point() + arc2.mid_point())),
     )
 }
 
