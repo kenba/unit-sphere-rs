@@ -200,7 +200,7 @@ pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radia
 ///
 /// returns the great-circle distance of point b from point a in `Radians`.
 #[must_use]
-pub fn calculate_haversine_distance(a: &LatLong, b: &LatLong) -> Radians {
+pub fn haversine_distance(a: &LatLong, b: &LatLong) -> Radians {
     let a_lat = Angle::from(a.lat);
     let b_lat = Angle::from(b.lat);
     let delta_lat = Angle::from((b.lat, a.lat));
@@ -602,7 +602,7 @@ mod tests {
         ));
         assert_eq!(180.0, Degrees::from(azimuth).0);
 
-        let dist = calculate_haversine_distance(&a, &b);
+        let dist = haversine_distance(&a, &b);
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             dist.0,
@@ -623,7 +623,7 @@ mod tests {
         ));
         assert_eq!(0.0, Degrees::from(azimuth).0);
 
-        let dist = calculate_haversine_distance(&a, &b);
+        let dist = haversine_distance(&a, &b);
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             dist.0,
@@ -644,7 +644,7 @@ mod tests {
         ));
         assert_eq!(-90.0, Degrees::from(azimuth).0);
 
-        let dist = calculate_haversine_distance(&a, &b);
+        let dist = haversine_distance(&a, &b);
         assert!(is_within_tolerance(
             2.0 * core::f64::consts::FRAC_PI_3,
             dist.0,
