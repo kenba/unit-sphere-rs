@@ -32,11 +32,11 @@
 //! to perform [great-circle navigation](https://en.wikipedia.org/wiki/Great-circle_navigation)
 //! on the surface of a unit sphere, see *Figure 1*.
 //!
-//! ![great circle path](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Illustration_of_great-circle_distance.svg/220px-Illustration_of_great-circle_distance.svg.png)  
+//! ![great circle path](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Illustration_of_great-circle_distance.svg/220px-Illustration_of_great-circle_distance.svg.png)
 //! *Figure 1 A Great Circle Path*
 //!
 //! A [great circle](https://en.wikipedia.org/wiki/Great_circle) is the
-//! shortest path between positions on the surface of a sphere.  
+//! shortest path between positions on the surface of a sphere.
 //! It is the spherical equivalent of a straight line in planar geometry.
 //!
 //! ## Spherical trigonometry
@@ -46,22 +46,22 @@
 //!
 //! The [course](https://en.wikipedia.org/wiki/Great-circle_navigation#Course)
 //! (initial azimuth) of a great circle can be calculated from the
-//! latitudes and longitudes of the start and end points.  
+//! latitudes and longitudes of the start and end points.
 //! While great circle distance can also be calculated from the latitudes and
 //! longitudes of the start and end points using the
-//! [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).  
+//! [haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 //! The resulting distance in `Radians` can be converted to the required units by
 //! multiplying the distance by the Earth radius measured in the required units.
 //!
 //! ## Vector geometry
 //!
 //! Points on the surface of a sphere and great circle poles may be represented
-//! by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).  
+//! by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).
 //! Many calculations are simpler using vectors than spherical trigonometry.
 //!
 //! For example, the across track distance of a point from a great circle can
 //! be calculated from the [dot product](https://en.wikipedia.org/wiki/Dot_product)
-//! of the point and the great circle pole vectors.  
+//! of the point and the great circle pole vectors.
 //! While intersection points of great circles can simply be calculated from
 //! the [cross product](https://en.wikipedia.org/wiki/Cross_product) of their
 //! pole vectors.
@@ -111,14 +111,14 @@ pub mod vector;
 use angle_sc::trig;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 
-/// Test whether a latitude in degrees is a valid latitude.  
+/// Test whether a latitude in degrees is a valid latitude.
 /// I.e. whether it lies in the range: -90.0 <= degrees <= 90.0
 #[must_use]
 pub fn is_valid_latitude(degrees: f64) -> bool {
     (-90.0..=90.0).contains(&degrees)
 }
 
-/// Test whether a longitude in degrees is a valid longitude.  
+/// Test whether a longitude in degrees is a valid longitude.
 /// I.e. whether it lies in the range: -180.0 <= degrees <= 180.0
 #[must_use]
 pub fn is_valid_longitude(degrees: f64) -> bool {
@@ -133,7 +133,7 @@ pub struct LatLong {
 }
 
 impl Validate for LatLong {
-    /// Test whether a `LatLong` is valid.  
+    /// Test whether a `LatLong` is valid.
     /// I.e. whether the latitude lies in the range: -90.0 <= lat <= 90.0
     /// and the longitude lies in the range: -90.0 <= lon <= 90.0
     #[must_use]
@@ -186,11 +186,26 @@ impl TryFrom<(f64, f64)> for LatLong {
 pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radians) {
     let a_lat = Angle::from(a.lat);
     let b_lat = Angle::from(b.lat);
-    let delta_long = Angle::from(b.lon - a.lon);
+    let delta_long = Angle::from((b.lon, a.lon));
     (
         great_circle::calculate_gc_azimuth(a_lat, b_lat, delta_long),
         great_circle::calculate_gc_distance(a_lat, b_lat, delta_long),
     )
+}
+
+/// Calculate the distance along the great circle of point b from point a,
+/// see: [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+/// This function is less accurate than `calculate_azimuth_and_distance`.
+/// * `a`, `b` - the start and end positions
+///
+/// returns the great-circle distance of point b from point a in `Radians`.
+#[must_use]
+pub fn calculate_haversine_distance(a: &LatLong, b: &LatLong) -> Radians {
+    let a_lat = Angle::from(a.lat);
+    let b_lat = Angle::from(b.lat);
+    let delta_lat = Angle::from((b.lat, a.lat));
+    let delta_long = Angle::from(b.lon - a.lon);
+    great_circle::calculate_haversine_distance(a_lat, b_lat, delta_long, delta_lat)
 }
 
 /// A `Vector3d` is a [nalgebra](https://crates.io/crates/nalgebra) `Vector3<f64>`.
@@ -224,7 +239,7 @@ pub fn longitude(a: &Vector3d) -> Angle {
 }
 
 impl From<&Vector3d> for LatLong {
-    /// Convert a point to a `LatLong`  
+    /// Convert a point to a `LatLong`
     #[must_use]
     fn from(value: &Vector3d) -> Self {
         Self::new(
@@ -290,7 +305,7 @@ impl Arc {
         )
     }
 
-    /// Construct an `Arc` from the start and end positions.  
+    /// Construct an `Arc` from the start and end positions.
     /// Note: if the points are the same or antipodal, the pole will be invalid.
     /// * `a`, `b` - the start and end positions
     #[must_use]
@@ -338,7 +353,7 @@ impl Arc {
         self.half_width
     }
 
-    /// The azimuth at the start point.      
+    /// The azimuth at the start point.
     #[must_use]
     pub fn azimuth(&self) -> Angle {
         vector::calculate_azimuth(&self.a, &self.pole)
@@ -416,7 +431,7 @@ impl Arc {
 impl TryFrom<(&LatLong, &LatLong)> for Arc {
     type Error = &'static str;
 
-    /// Construct an `Arc` from a pair of positions.  
+    /// Construct an `Arc` from a pair of positions.
     /// * `params` - the start and end positions
     fn try_from(params: (&LatLong, &LatLong)) -> Result<Self, Self::Error> {
         // Convert positions to vectors
@@ -586,6 +601,13 @@ mod tests {
             f64::EPSILON
         ));
         assert_eq!(180.0, Degrees::from(azimuth).0);
+
+        let dist = calculate_haversine_distance(&a, &b);
+        assert!(is_within_tolerance(
+            core::f64::consts::FRAC_PI_2,
+            dist.0,
+            f64::EPSILON
+        ));
     }
 
     #[test]
@@ -600,6 +622,13 @@ mod tests {
             f64::EPSILON
         ));
         assert_eq!(0.0, Degrees::from(azimuth).0);
+
+        let dist = calculate_haversine_distance(&a, &b);
+        assert!(is_within_tolerance(
+            core::f64::consts::FRAC_PI_2,
+            dist.0,
+            f64::EPSILON
+        ));
     }
 
     #[test]
@@ -614,6 +643,13 @@ mod tests {
             2.0 * f64::EPSILON
         ));
         assert_eq!(-90.0, Degrees::from(azimuth).0);
+
+        let dist = calculate_haversine_distance(&a, &b);
+        assert!(is_within_tolerance(
+            2.0 * core::f64::consts::FRAC_PI_3,
+            dist.0,
+            2.0 * f64::EPSILON
+        ));
     }
 
     #[test]

@@ -335,6 +335,7 @@ pub fn sin_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> trig::UnitNeg
 /// * `a` - the start point of the Great Circle arc.
 /// * `pole` - the pole of the Great Circle arc.
 /// * `point` - a point in the Great Circle.
+///
 /// returns the Great Circle along track distance in `Radians`.
 #[must_use]
 pub fn calculate_great_circle_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> Radians {
@@ -371,6 +372,7 @@ pub fn along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> 
 /// * `a` - the start point of the Great Circle arc.
 /// * `pole` - the pole of the Great Circle arc.
 /// * `point` - the point.
+///
 /// returns the square of the Euclidean along track distance
 #[must_use]
 pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {

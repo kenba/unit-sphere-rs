@@ -26,17 +26,23 @@ use angle_sc::{trig, Angle, Radians};
 /// The minimum value for angles and distances.
 pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
 
-/// Calculate the Great Circle distance (angle from centre) between two points
-/// from their Latitudes and their Longitude difference.
+/// Calculate the Great Circle distance between two points from their
+/// Latitude and Longitude differences, see:
+/// [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 /// This function is less accurate than `calculate_gc_distance`.
 /// * `a_lat` - start point Latitude.
 /// * `b_lat` - finish point Latitude.
 /// * `delta_long` - Longitude difference between start and finish points.
+/// * `delta_lat` - Latitude difference between start and finish points.
 ///
 /// returns the Great Circle distance between the points in Radians.
 #[must_use]
-pub fn calculate_haversine_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Radians {
-    let delta_lat = b_lat - a_lat;
+pub fn calculate_haversine_distance(
+    a_lat: Angle,
+    b_lat: Angle,
+    delta_long: Angle,
+    delta_lat: Angle,
+) -> Radians {
     let haversine_lat = trig::sq_sine_half(delta_lat.cos());
     let haversine_lon = trig::sq_sine_half(delta_long.cos());
 
@@ -156,7 +162,8 @@ mod tests {
         let angle_45 = Angle::from_y_x(1.0, 1.0);
 
         let gc_distance = calculate_gc_distance(angle_0, angle_45, -angle_45);
-        let haversine_distance = calculate_haversine_distance(angle_0, angle_45, -angle_45);
+        let haversine_distance =
+            calculate_haversine_distance(angle_0, angle_45, -angle_45, -angle_45);
         assert!(is_within_tolerance(
             gc_distance.0,
             haversine_distance.0,
@@ -172,7 +179,7 @@ mod tests {
 
         let gc_distance = calculate_gc_distance(angle_45, angle_45, angle_0);
         assert_eq!(0.0, gc_distance.0);
-        let haversine_distance = calculate_haversine_distance(angle_45, angle_45, angle_0);
+        let haversine_distance = calculate_haversine_distance(angle_45, angle_45, angle_0, angle_0);
         assert_eq!(0.0, haversine_distance.0);
 
         let gc_azimuth = calculate_gc_azimuth(angle_45, angle_45, angle_0);
