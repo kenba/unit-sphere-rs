@@ -193,8 +193,9 @@ pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radia
     )
 }
 
-/// Calculate the distance along the great circle of point b from point a,
-/// see: [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+/// Calculate the distance along the great circle of point b from point a.
+/// 
+/// See: [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 /// This function is less accurate than `calculate_azimuth_and_distance`.
 /// * `a`, `b` - the start and end positions
 ///

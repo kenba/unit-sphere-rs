@@ -79,6 +79,7 @@ pub fn is_unit(a: &Vector3d) -> bool {
 }
 
 /// Normalize a vector to lie on the surface of the unit sphere.
+/// 
 /// Note: this function returns an `Option` so uses the British spelling of
 /// `normalise` to differentiate it from the standard `normalize` function.
 /// * `a` the `Vector3d`

@@ -27,8 +27,9 @@ use angle_sc::{trig, Angle, Radians};
 pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
 
 /// Calculate the Great Circle distance between two points from their
-/// Latitude and Longitude differences, see:
-/// [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
+/// Latitude and Longitude differences.
+/// 
+/// See: [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 /// This function is less accurate than `calculate_gc_distance`.
 /// * `a_lat` - start point Latitude.
 /// * `b_lat` - finish point Latitude.
