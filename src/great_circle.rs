@@ -114,7 +114,7 @@ pub fn calculate_gc_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> R
 pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
     // if start point is North or South pole
     if a_lat.cos().0 < MIN_VALUE {
-        if a_lat.sin().0 < 0.0 {
+        if a_lat.sin().0.is_sign_negative() {
             // South pole, azimuth is zero
             Angle::default()
         } else {

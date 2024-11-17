@@ -265,13 +265,13 @@ pub struct Arc {
 impl Validate for Arc {
     /// Test whether an `Arc` is valid.
     /// I.e. both a and pole are on the unit sphere and are orthogonal and
-    /// both length and `half_width` are >= 0.0.
+    /// both length and `half_width` are not negative.
     fn is_valid(&self) -> bool {
         vector::is_unit(&self.a)
             && vector::is_unit(&self.pole)
             && vector::are_orthogonal(&self.a, &self.pole)
-            && (0.0 <= self.length.0)
-            && (0.0 <= self.half_width.0)
+            && !self.length.0.is_sign_negative()
+            && !self.half_width.0.is_sign_negative()
     }
 }
 
@@ -365,6 +365,7 @@ impl Arc {
         vector::direction(&self.a, &self.pole)
     }
 
+    /// A position vector at distance along the `Arc`.
     #[must_use]
     pub fn position(&self, distance: Radians) -> Vector3d {
         vector::position(&self.a, &self.direction(), Angle::from(distance))
