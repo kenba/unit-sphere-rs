@@ -46,7 +46,8 @@
 use super::{calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE};
 use angle_sc::{max, Radians};
 
-/// Calculate an intersection point between the poles of two Great Circles.  
+/// Calculate an intersection point between the poles of two Great Circles.
+///
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>  
 /// * `pole1`, `pole2` the poles.
 ///
@@ -58,6 +59,7 @@ pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Optio
 
 /// Calculate the great circle distances to an intersection point from the
 /// start points of a pair of great circle arcs, on different great circles.
+///
 /// * `a1`, `a2` the start points of the great circle arcs
 /// * `pole1`, `pole2` the poles of the great circle arcs
 /// * `c` the intersection point
@@ -79,6 +81,7 @@ pub fn calculate_intersection_distances(
 }
 
 /// Whether an intersection point is within an `Arc`.
+///
 /// * `distance` - the along track distance to the point from the start of the `Arc`.
 /// * `length` the length of the `Arc`.
 ///
@@ -90,6 +93,7 @@ pub fn is_within(distance: f64, length: f64) -> bool {
 
 /// Calculate the great-circle distances along a pair of `Arc`s on coincident
 /// Great Circles to their closest (reference) points.
+///
 /// * `gc_d` the great-circle distance between the arc start points.
 /// * `reciprocal` whether the arcs are in reciprocal directions.
 /// * `arc1_length`, `arc2_length` the `Arc` lengths in `Radians`.
@@ -171,6 +175,7 @@ pub fn use_antipodal_point(point: &Vector3d, centroid: &Vector3d) -> bool {
 /// Calculate the great-circle distances along a pair of arcs to their
 /// closest intersection point or their coincident arc distances if the
 /// `Arc`s are on coincident Great Circles.
+///
 /// * `a1`, `a2` the `Arc` start points.
 /// * `pole1`, `pole1` the `Arc` poles.
 /// * `length1`, `length2` the `Arc` lengths.

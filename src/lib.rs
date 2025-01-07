@@ -112,6 +112,7 @@ use angle_sc::trig;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 
 /// Test whether a latitude in degrees is a valid latitude.
+///
 /// I.e. whether it lies in the range: -90.0 <= degrees <= 90.0
 #[must_use]
 pub fn is_valid_latitude(degrees: f64) -> bool {
@@ -119,6 +120,7 @@ pub fn is_valid_latitude(degrees: f64) -> bool {
 }
 
 /// Test whether a longitude in degrees is a valid longitude.
+///
 /// I.e. whether it lies in the range: -180.0 <= degrees <= 180.0
 #[must_use]
 pub fn is_valid_longitude(degrees: f64) -> bool {
@@ -134,6 +136,7 @@ pub struct LatLong {
 
 impl Validate for LatLong {
     /// Test whether a `LatLong` is valid.
+    ///
     /// I.e. whether the latitude lies in the range: -90.0 <= lat <= 90.0
     /// and the longitude lies in the range: -90.0 <= lon <= 90.0
     #[must_use]
@@ -194,7 +197,7 @@ pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radia
 }
 
 /// Calculate the distance along the great circle of point b from point a.
-/// 
+///
 /// See: [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 /// This function is less accurate than `calculate_azimuth_and_distance`.
 /// * `a`, `b` - the start and end positions
@@ -214,7 +217,8 @@ pub fn haversine_distance(a: &LatLong, b: &LatLong) -> Radians {
 pub type Vector3d = na::Vector3<f64>;
 
 impl From<&LatLong> for Vector3d {
-    /// Convert a `LatLong` to a point on the unit sphere
+    /// Convert a `LatLong` to a point on the unit sphere.
+    ///
     /// @pre |lat| <= 90.0 degrees.
     /// * `lat` - the latitude.
     /// * `lon` - the longitude.
@@ -265,6 +269,7 @@ pub struct Arc {
 
 impl Validate for Arc {
     /// Test whether an `Arc` is valid.
+    ///
     /// I.e. both a and pole are on the unit sphere and are orthogonal and
     /// both length and `half_width` are not negative.
     fn is_valid(&self) -> bool {
@@ -278,6 +283,7 @@ impl Validate for Arc {
 
 impl Arc {
     /// Construct an `Arc`
+    ///
     /// * `a` - the start point of the `Arc`.
     /// * `pole` - the right hand pole of the Great Circle of the `Arc`.
     /// * `length` - the length of the `Arc`.
@@ -293,6 +299,7 @@ impl Arc {
     }
 
     /// Construct an `Arc`
+    ///
     /// * `a` - the start position
     /// * `azimuth` - the azimuth at a.
     /// * `length` - the length of the `Arc`.
@@ -307,6 +314,7 @@ impl Arc {
     }
 
     /// Construct an `Arc` from the start and end positions.
+    ///
     /// Note: if the points are the same or antipodal, the pole will be invalid.
     /// * `a`, `b` - the start and end positions
     #[must_use]
@@ -322,7 +330,8 @@ impl Arc {
         }
     }
 
-    /// Set the `half_width` of an `Arc`
+    /// Set the `half_width` of an `Arc`.
+    ///
     /// * `half_width` - the half width of the `Arc`.
     #[must_use]
     pub fn set_half_width(&mut self, half_width: Radians) -> &mut Self {
@@ -385,6 +394,7 @@ impl Arc {
     }
 
     /// The position of a perpendicular point at distance from the `Arc`.
+    ///
     /// * `point` a point on the `Arc`'s great circle.
     /// * `distance` the perpendicular distance from the `Arc`'s great circle.
     ///
@@ -395,6 +405,7 @@ impl Arc {
     }
 
     /// The position of a point at angle from the `Arc` start, at `Arc` length.
+    ///
     /// * `angle` the angle from the `Arc` start.
     ///
     /// returns the point at angle from the `Arc` start, at `Arc` length.
@@ -404,6 +415,7 @@ impl Arc {
     }
 
     /// The `Arc` at the end of an `Arc`, just the point if `half_width` is zero.
+    ///
     /// @param `at_b` if true the `Arc` at b, else the `Arc` at a.
     ///
     /// @return the end `Arc` at a or b.
@@ -421,6 +433,7 @@ impl Arc {
 
     /// Calculate great-circle along and across track distances of point from
     /// the `Arc`.
+    ///
     /// * `point` - the point.
     ///
     /// returns the along and across track distances of the point in Radians.
@@ -434,6 +447,7 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
     type Error = &'static str;
 
     /// Construct an `Arc` from a pair of positions.
+    ///
     /// * `params` - the start and end positions
     fn try_from(params: (&LatLong, &LatLong)) -> Result<Self, Self::Error> {
         // Convert positions to vectors
@@ -463,6 +477,7 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
 /// Calculate the great-circle distances along a pair of `Arc`s to their
 /// closest intersection point or their coincident arc distances if the
 /// `Arc`s are on coincident Great Circles.
+///
 /// * `arc1`, `arc2` the `Arc`s.
 ///
 /// returns the distances along the first `Arc` and second `Arc` to the intersection
@@ -481,6 +496,7 @@ pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Rad
 }
 
 /// Calculate whether a pair of `Arc`s intersect and (if so) where.
+///
 /// * `arc1`, `arc2` the `Arc`s.
 ///
 /// returns the distance along the first `Arc` to the second `Arc` or None if they

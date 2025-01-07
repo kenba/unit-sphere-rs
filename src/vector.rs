@@ -33,6 +33,7 @@ pub mod intersection;
 pub const MIN_SQ_DISTANCE: f64 = great_circle::MIN_VALUE * great_circle::MIN_VALUE;
 
 /// Convert a latitude and longitude to a point on the unit sphere.
+///
 /// @pre |lat| <= 90.0 degrees.
 /// * `lat` - the latitude.
 /// * `lon` - the longitude.
@@ -48,6 +49,7 @@ pub fn to_point(lat: Angle, lon: Angle) -> Vector3d {
 }
 
 /// Calculate the latitude of a point.
+///
 /// * `a` - the point.
 ///
 /// returns the latitude of the point
@@ -58,6 +60,7 @@ pub fn latitude(a: &Vector3d) -> Angle {
 }
 
 /// Calculate the longitude of a point.
+///
 /// * `a` - the point.
 ///
 /// returns the longitude of the point
@@ -67,6 +70,7 @@ pub fn longitude(a: &Vector3d) -> Angle {
 }
 
 /// Determine whether a `Vector3d` is a unit vector.
+///
 /// * `a` - the vector.
 ///
 /// returns true if `a` is a unit vector, false otherwise.
@@ -79,7 +83,7 @@ pub fn is_unit(a: &Vector3d) -> bool {
 }
 
 /// Normalize a vector to lie on the surface of the unit sphere.
-/// 
+///
 /// Note: this function returns an `Option` so uses the British spelling of
 /// `normalise` to differentiate it from the standard `normalize` function.
 /// * `a` the `Vector3d`
@@ -99,6 +103,7 @@ pub fn normalise(a: &Vector3d) -> Option<Vector3d> {
 }
 
 /// Calculate the square of the Euclidean distance between two points.
+///
 /// Note: points do NOT need to be valid Points.
 /// @post for unit vectors: result <= 4
 /// * `a`, `b` the points.
@@ -110,6 +115,7 @@ pub fn sq_distance(a: &Vector3d, b: &Vector3d) -> f64 {
 }
 
 /// Calculate the shortest (Euclidean) distance between two Points.
+///
 /// @post for unit vectors: result <= 2
 /// * `a`, `b` the points.
 ///
@@ -120,6 +126,7 @@ pub fn distance(a: &Vector3d, b: &Vector3d) -> f64 {
 }
 
 /// Determine whether two `Vector3d`s are orthogonal (perpendicular).
+///
 /// * `a`, `b` the `Vector3d`s.
 ///
 /// returns true if a and b are orthogonal, false otherwise.
@@ -131,6 +138,7 @@ pub fn are_orthogonal(a: &Vector3d, b: &Vector3d) -> bool {
 }
 
 /// Calculate the relative longitude of point a from point b.
+///
 /// * `a`, `b` - the points.
 ///
 /// returns the relative longitude of point a from point b,
@@ -143,6 +151,7 @@ pub fn delta_longitude(a: &Vector3d, b: &Vector3d) -> Angle {
 }
 
 /// Determine whether point a is West of point b.
+///
 /// It calculates and compares the perp product of the two points.
 /// * `a`, `b` - the points.
 ///
@@ -155,6 +164,7 @@ pub fn is_west_of(a: &Vector3d, b: &Vector3d) -> bool {
 
 /// Calculate the right hand pole vector of a Great Circle from an initial
 /// position and an azimuth.
+///
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#distance>
 /// * `lat` - start point Latitude.
 /// * `lon` - start point Longitude.
@@ -175,6 +185,7 @@ pub fn calculate_pole(lat: Angle, lon: Angle, azi: Angle) -> Vector3d {
 }
 
 /// Calculate the azimuth at a point on the Great Circle defined by pole.
+///
 /// * `point` - the point.
 /// * `pole` - the right hand pole of the Great Circle.
 ///
@@ -198,6 +209,7 @@ pub fn calculate_azimuth(point: &Vector3d, pole: &Vector3d) -> Angle {
 
 /// Calculate the direction vector along a Great Circle from an initial
 /// position and an azimuth.
+///
 /// See: Panou and Korakitis equations: 30, 31, & 32a
 /// <https://arxiv.org/abs/1811.03513>
 /// * `lat` - start point Latitude.
@@ -219,6 +231,7 @@ pub fn calculate_direction(lat: Angle, lon: Angle, azi: Angle) -> Vector3d {
 }
 
 /// Calculate the direction vector of a Great Circle arc.
+///
 /// * `a` - the start point.
 /// * `pole` - the pole of a Great Circle.
 ///
@@ -229,6 +242,7 @@ pub fn direction(a: &Vector3d, pole: &Vector3d) -> Vector3d {
 }
 
 /// Calculate the position of a point along a Great Circle arc.
+///
 /// * `a` - the start point.
 /// * `dir` - the direction vector of a Great Circle at a.
 /// * `distance` - the a Great Circle as an Angle.
@@ -240,6 +254,7 @@ pub fn position(a: &Vector3d, dir: &Vector3d, distance: Angle) -> Vector3d {
 }
 
 /// Calculate the direction vector of a Great Circle rotated by angle.
+///
 /// * `dir` - the direction vector of a Great Circle arc.
 /// * `pole` - the pole of a Great Circle.
 /// * `angle` - the angle to rotate the direction vector by.
@@ -252,6 +267,7 @@ pub fn rotate(dir: &Vector3d, pole: &Vector3d, angle: Angle) -> Vector3d {
 }
 
 /// Calculate the position of a point rotated by angle at radius.
+///
 /// * `a` - the start point.
 /// * `pole` - the pole of a Great Circle.
 /// * `angle` - the angle to rotate the direction vector by.
@@ -264,6 +280,7 @@ pub fn rotate_position(a: &Vector3d, pole: &Vector3d, angle: Angle, radius: Angl
 }
 
 /// The sine of the across track distance of a point relative to a Great Circle pole.
+///
 /// It is simply the dot product of the pole and the point: pole . point
 /// * `pole` - the Great Circle pole.
 /// * `point` - the point.
@@ -275,6 +292,7 @@ fn sin_xtd(pole: &Vector3d, point: &Vector3d) -> trig::UnitNegRange {
 }
 
 /// The across track distance of a point relative to a Great Circle pole.
+///
 /// * `pole` - the Great Circle pole.
 /// * `point` - the point.
 ///
@@ -291,6 +309,7 @@ pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
 
 /// The square of the Euclidean cross track distance of a point relative to a
 /// Great Circle pole.
+///
 /// * `pole` - the Great Circle pole.
 /// * `point` - the point.
 ///
@@ -306,6 +325,7 @@ pub fn sq_cross_track_distance(pole: &Vector3d, point: &Vector3d) -> f64 {
 }
 
 /// Calculate the closest point on a plane to the given point.
+///
 /// See: [Closest Point on Plane](https://gdbooks.gitbooks.io/3dcollisions/content/Chapter1/closest_point_on_plane.html)
 /// * `pole` - the Great Circle pole (aka normal) of the plane.
 /// * `point` - the point.
@@ -318,6 +338,7 @@ fn calculate_point_on_plane(pole: &Vector3d, point: &Vector3d) -> Vector3d {
 }
 
 /// The sine of the along track distance of a point along a Great Circle arc.
+///
 /// It is the triple product of the pole, a and the point:
 /// (pole X a) . point = pole . (a X point)
 /// * `a` - the start point of the Great Circle arc.
@@ -332,6 +353,7 @@ pub fn sin_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> trig::UnitNeg
 }
 
 /// Calculate the relative distance of two points on a Great Circle arc.
+///
 /// @pre both points must be on the Great Circle defined by `pole`.
 /// * `a` - the start point of the Great Circle arc.
 /// * `pole` - the pole of the Great Circle arc.
@@ -353,6 +375,7 @@ pub fn calculate_great_circle_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3
 
 /// The Great Circle distance of a point along the arc relative to a,
 /// (+ve) ahead of a, (-ve) behind a.
+///
 /// * `a` - the start point of the Great Circle arc.
 /// * `pole` - the pole of the Great Circle arc.
 /// * `point` - the point.
@@ -369,6 +392,7 @@ pub fn along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> 
 
 /// Calculate the square of the Euclidean along track distance of a point
 /// from the start of an Arc.
+///
 /// It is calculated using the closest point on the plane to the point.
 /// * `a` - the start point of the Great Circle arc.
 /// * `pole` - the pole of the Great Circle arc.
@@ -392,6 +416,7 @@ pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) 
 }
 
 /// Calculate Great Circle along and across track distances.
+///
 /// * `a` - the start point of the Great Circle arc.
 /// * `pole` - the pole of the Great Circle arc.
 /// * `p` - the point.

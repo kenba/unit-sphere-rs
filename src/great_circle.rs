@@ -28,7 +28,7 @@ pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
 
 /// Calculate the Great Circle distance between two points from their
 /// Latitude and Longitude differences.
-/// 
+///
 /// See: [Haversine formula](https://en.wikipedia.org/wiki/Haversine_formula).
 /// This function is less accurate than `calculate_gc_distance`.
 /// * `a_lat` - start point Latitude.
@@ -75,6 +75,7 @@ pub fn gc2e_distance(gc: Radians) -> f64 {
 
 /// Calculate the square of the Euclidean distance (i.e. using Pythagoras)
 /// between two points from their Latitudes and their Longitude difference.
+///
 /// * `a_lat` - start point Latitude.
 /// * `b_lat` - finish point Latitude.
 /// * `delta_long` - Longitude difference between start and finish points.
@@ -92,6 +93,7 @@ pub fn sq_euclidean_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> f
 
 /// Calculate the Great Circle distance (angle from centre) between two points
 /// from their Latitudes and their Longitude difference.
+///
 /// This function is more accurate than `calculate_haversine_distance`.
 /// * `a_lat` - start point Latitude.
 /// * `b_lat` - finish point Latitude.
@@ -105,6 +107,7 @@ pub fn calculate_gc_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> R
 
 /// Calculate the azimuth (bearing) along the great circle of point b from
 /// point a from their Latitudes and their Longitude difference.
+///
 /// * `a_lat` - start point Latitude.
 /// * `b_lat` - finish point Latitude.
 /// * `delta_long` - Longitude difference between start and finish points.
