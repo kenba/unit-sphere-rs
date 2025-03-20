@@ -32,8 +32,9 @@
 //! to perform [great-circle navigation](https://en.wikipedia.org/wiki/Great-circle_navigation)
 //! on the surface of a unit sphere, see *Figure 1*.
 //!
-//! ![great circle path](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Illustration_of_great-circle_distance.svg/220px-Illustration_of_great-circle_distance.svg.png)
-//! *Figure 1 A Great Circle Path*
+//! ![great circle arc](https://via-technology.aero/img/navigation/sphere/great_circle_arc.svg)
+//! 
+//! *Figure 1 A Great Circle Arc*
 //!
 //! A [great circle](https://en.wikipedia.org/wiki/Great_circle) is the
 //! shortest path between positions on the surface of a sphere.
@@ -59,6 +60,10 @@
 //! by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).
 //! Many calculations are simpler using vectors than spherical trigonometry.
 //!
+//! ![Spherical Vector Coordinates](https://via-technology.aero/img/navigation/sphere/ecef_coordinates.svg)
+//! 
+//! *Figure 2 Spherical Vector Coordinates*
+//! 
 //! For example, the across track distance of a point from a great circle can
 //! be calculated from the [dot product](https://en.wikipedia.org/wiki/Dot_product)
 //! of the point and the great circle pole vectors.
@@ -70,7 +75,11 @@
 //!
 //! The `great_circle` module performs spherical trigonometric calculations
 //! and the `vector` module performs vector geometry calculations.
+//! See: [spherical vector geometry](https://via-technology.aero/navigation/spherical-vector-geometry/).
 //!
+//! The software uses types: `Angle`, `Degrees` and `Radians` from the
+//! [angle-sc](https://crates.io/crates/angle-sc) crate.
+//! 
 //! The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
 //! so it can be used in embedded applications.
 //!
