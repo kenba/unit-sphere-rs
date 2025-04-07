@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Ken Barker
+// Copyright (c) 2024-2025 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -53,7 +53,7 @@ use angle_sc::{max, Radians};
 ///
 /// return an intersection point or None if the poles represent coincident Great Circles.
 #[must_use]
-pub fn calculate_intersection_point(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
+pub fn calculate_intersection(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
     normalise(&pole1.cross(pole2))
 }
 
@@ -198,7 +198,7 @@ pub fn calculate_intersection_point_distances(
     if sq_d < MIN_SQ_DISTANCE {
         (Radians(0.0), Radians(0.0))
     } else {
-        calculate_intersection_point(pole1, pole2).map_or_else(
+        calculate_intersection(pole1, pole2).map_or_else(
             || {
                 calculate_coincident_arc_distances(
                     calculate_great_circle_atd(a1, pole1, a2),
@@ -227,7 +227,7 @@ mod tests {
     use angle_sc::{is_within_tolerance, Angle, Degrees};
 
     #[test]
-    fn test_calculate_intersection_point() {
+    fn test_calculate_intersection() {
         let lat_lon_south = LatLong::new(Degrees(-90.0), Degrees(0.0));
         let south_pole = Vector3d::from(&lat_lon_south);
 
@@ -237,11 +237,11 @@ mod tests {
         let lat_lon_idl = LatLong::new(Degrees(0.0), Degrees(180.0));
         let idl = Vector3d::from(&lat_lon_idl);
 
-        let equator_intersection = calculate_intersection_point(&south_pole, &north_pole);
+        let equator_intersection = calculate_intersection(&south_pole, &north_pole);
         assert!(equator_intersection.is_none());
 
-        let gc_intersection1 = calculate_intersection_point(&idl, &north_pole).unwrap();
-        let gc_intersection2 = calculate_intersection_point(&idl, &south_pole).unwrap();
+        let gc_intersection1 = calculate_intersection(&idl, &north_pole).unwrap();
+        let gc_intersection2 = calculate_intersection(&idl, &south_pole).unwrap();
 
         assert_eq!(gc_intersection1, -gc_intersection2);
     }
@@ -266,7 +266,7 @@ mod tests {
             azimuth2,
         );
 
-        let c = calculate_intersection_point(&pole1, &pole2).unwrap();
+        let c = calculate_intersection(&pole1, &pole2).unwrap();
         let (c1, c2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &c);
         assert!(is_within_tolerance(-3.1169124762478333, c1.0, f64::EPSILON));
         assert!(is_within_tolerance(-3.1169124762478333, c2.0, f64::EPSILON));
