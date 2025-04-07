@@ -55,8 +55,7 @@ pub fn to_point(lat: Angle, lon: Angle) -> Vector3d {
 /// returns the latitude of the point
 #[must_use]
 pub fn latitude(a: &Vector3d) -> Angle {
-    let sin_a = trig::UnitNegRange(a.z);
-    Angle::new(sin_a, trig::swap_sin_cos(sin_a))
+    Angle::from_y_x(a.z, libm::hypot(a.x, a.y))
 }
 
 /// Calculate the longitude of a point.
