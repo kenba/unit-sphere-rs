@@ -343,7 +343,7 @@ impl Arc {
     ///
     /// * `half_width` - the half width of the `Arc`.
     #[must_use]
-    pub fn set_half_width(&mut self, half_width: Radians) -> &mut Self {
+    pub const fn set_half_width(&mut self, half_width: Radians) -> &mut Self {
         self.half_width = half_width;
         self
     }
