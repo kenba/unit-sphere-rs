@@ -147,7 +147,7 @@ impl Validate for LatLong {
     /// Test whether a `LatLong` is valid.
     ///
     /// I.e. whether the latitude lies in the range: -90.0 <= lat <= 90.0
-    /// and the longitude lies in the range: -90.0 <= lon <= 90.0
+    /// and the longitude lies in the range: -180.0 <= lon <= 180.0
     #[must_use]
     fn is_valid(&self) -> bool {
         is_valid_latitude(self.lat.0) && is_valid_longitude(self.lon.0)
