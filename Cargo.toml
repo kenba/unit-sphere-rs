@@ -17,6 +17,7 @@ angle-sc = "0.3"
 libm = "0.2"
 nalgebra = "0.33"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
+thiserror = "2"
 
 [dev-dependencies]
 serde_json = "1.0"

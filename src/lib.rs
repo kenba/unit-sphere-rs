@@ -119,6 +119,7 @@ pub mod vector;
 
 use angle_sc::trig;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
+use thiserror::Error;
 
 /// Test whether a latitude in degrees is a valid latitude.
 ///
@@ -171,17 +172,26 @@ impl LatLong {
     }
 }
 
+/// A Error type for an invalid `LatLong`.
+#[derive(Error, Debug, PartialEq)]
+pub enum LatLongError {
+    #[error("invalid latitude value: `{0}`")]
+    Latitude(f64),
+    #[error("invalid longitude value: `{0}`")]
+    Longitude(f64),
+}
+
 impl TryFrom<(f64, f64)> for LatLong {
-    type Error = &'static str;
+    type Error = LatLongError;
 
     /// Attempt to convert a pair of f64 values in latitude, longitude order.
     ///
-    /// return a valid `LatLong`.
+    /// return a valid `LatLong` or a `LatLongError`.
     fn try_from(lat_long: (f64, f64)) -> Result<Self, Self::Error> {
         if !is_valid_latitude(lat_long.0) {
-            Err("invalid latitude")
+            Err(LatLongError::Latitude(lat_long.0))
         } else if !is_valid_longitude(lat_long.1) {
-            Err("invalid longitude")
+            Err(LatLongError::Longitude(lat_long.1))
         } else {
             Ok(Self::new(Degrees(lat_long.0), Degrees(lat_long.1)))
         }
@@ -452,8 +462,17 @@ impl Arc {
     }
 }
 
+/// A Error type for an invalid `Arc`.
+#[derive(Error, Debug, PartialEq)]
+pub enum ArcError {
+    #[error("positions are too close: `{0}`")]
+    PositionsTooClose(f64),
+    #[error("positions are too far apart: `{0}`")]
+    PositionsTooFar(f64),
+}
+
 impl TryFrom<(&LatLong, &LatLong)> for Arc {
-    type Error = &'static str;
+    type Error = ArcError;
 
     /// Construct an `Arc` from a pair of positions.
     ///
@@ -465,10 +484,11 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
         // Calculate the great circle pole
         vector::normalise(&a.cross(&b), vector::MIN_SQ_NORM).map_or_else(
             || {
-                if vector::sq_distance(&a, &b) < 1.0 {
-                    Err("Positions are too close")
+                let sq_d = vector::sq_distance(&a, &b);
+                if sq_d < 1.0 {
+                    Err(ArcError::PositionsTooClose(sq_d))
                 } else {
-                    Err("Positions are antipodal")
+                    Err(ArcError::PositionsTooFar(sq_d))
                 }
             },
             |pole| {
@@ -591,13 +611,15 @@ mod tests {
         assert_eq!(Degrees(0.0), a.lat());
         assert_eq!(Degrees(90.0), a.lon());
 
-        print!("LatLong: {:?}", a);
+        println!("LatLong: {:?}", a);
 
         let invalid_lat = LatLong::try_from((91.0, 0.0));
-        assert_eq!(Err("invalid latitude"), invalid_lat);
+        assert_eq!(Err(LatLongError::Latitude(91.0)), invalid_lat);
+        println!("invalid_lat: {:?}", invalid_lat);
 
         let invalid_lon = LatLong::try_from((0.0, 181.0));
-        assert_eq!(Err("invalid longitude"), invalid_lon);
+        assert_eq!(Err(LatLongError::Longitude(181.0)), invalid_lon);
+        println!("invalid_lon: {:?}", invalid_lon);
     }
 
     #[test]
@@ -799,13 +821,15 @@ mod tests {
         ));
 
         let invalid_arc = Arc::try_from((&north_pole, &north_pole));
-        assert_eq!(Err("Positions are too close"), invalid_arc);
+        assert_eq!(Err(ArcError::PositionsTooClose(0.0)), invalid_arc);
+        println!("invalid_arc: {:?}", invalid_arc);
 
         let arc = Arc::between_positions(&north_pole, &north_pole);
         assert_eq!(north_pole, LatLong::from(&arc.b()));
 
         let invalid_arc = Arc::try_from((&north_pole, &south_pole));
-        assert_eq!(Err("Positions are antipodal"), invalid_arc);
+        assert_eq!(Err(ArcError::PositionsTooFar(4.0)), invalid_arc);
+        println!("invalid_arc: {:?}", invalid_arc);
 
         let arc = Arc::between_positions(&north_pole, &south_pole);
         assert_eq!(south_pole, LatLong::from(&arc.b()));
