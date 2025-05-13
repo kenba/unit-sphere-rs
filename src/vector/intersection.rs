@@ -43,7 +43,9 @@
 //! `calculate_intersection_distances` then calculates great-circle distances
 //! along the `Arc`s to the intersection point.
 
-use super::{calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE, MIN_SQ_NORM};
+use super::{
+    calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE, MIN_SQ_NORM,
+};
 use angle_sc::{max, Radians};
 
 /// Calculate an intersection point between the poles of two Great Circles.
