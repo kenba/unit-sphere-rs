@@ -43,18 +43,22 @@
 //! `calculate_intersection_distances` then calculates great-circle distances
 //! along the `Arc`s to the intersection point.
 
-use super::{calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE};
+use super::{calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE, MIN_SQ_NORM};
 use angle_sc::{max, Radians};
 
 /// Calculate an intersection point between the poles of two Great Circles.
-///
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>  
 /// * `pole1`, `pole2` the poles.
+/// * `min_sq_value` the minimum square of a vector length to normalize.
 ///
 /// return an intersection point or None if the poles represent coincident Great Circles.
 #[must_use]
-pub fn calculate_intersection(pole1: &Vector3d, pole2: &Vector3d) -> Option<Vector3d> {
-    normalise(&pole1.cross(pole2))
+pub fn calculate_intersection(
+    pole1: &Vector3d,
+    pole2: &Vector3d,
+    min_sq_value: f64,
+) -> Option<Vector3d> {
+    normalise(&pole1.cross(pole2), min_sq_value)
 }
 
 /// Calculate the great circle distances to an intersection point from the
@@ -198,7 +202,7 @@ pub fn calculate_intersection_point_distances(
     if sq_d < MIN_SQ_DISTANCE {
         (Radians(0.0), Radians(0.0))
     } else {
-        calculate_intersection(pole1, pole2).map_or_else(
+        calculate_intersection(pole1, pole2, MIN_SQ_NORM).map_or_else(
             || {
                 calculate_coincident_arc_distances(
                     calculate_great_circle_atd(a1, pole1, a2),
@@ -237,11 +241,11 @@ mod tests {
         let lat_lon_idl = LatLong::new(Degrees(0.0), Degrees(180.0));
         let idl = Vector3d::from(&lat_lon_idl);
 
-        let equator_intersection = calculate_intersection(&south_pole, &north_pole);
+        let equator_intersection = calculate_intersection(&south_pole, &north_pole, MIN_SQ_NORM);
         assert!(equator_intersection.is_none());
 
-        let gc_intersection1 = calculate_intersection(&idl, &north_pole).unwrap();
-        let gc_intersection2 = calculate_intersection(&idl, &south_pole).unwrap();
+        let gc_intersection1 = calculate_intersection(&idl, &north_pole, MIN_SQ_NORM).unwrap();
+        let gc_intersection2 = calculate_intersection(&idl, &south_pole, MIN_SQ_NORM).unwrap();
 
         assert_eq!(gc_intersection1, -gc_intersection2);
     }
@@ -266,13 +270,13 @@ mod tests {
             azimuth2,
         );
 
-        let c = calculate_intersection(&pole1, &pole2).unwrap();
+        let c = calculate_intersection(&pole1, &pole2, MIN_SQ_NORM).unwrap();
         let (c1, c2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &c);
         assert!(is_within_tolerance(-3.1169124762478333, c1.0, f64::EPSILON));
         assert!(is_within_tolerance(-3.1169124762478333, c2.0, f64::EPSILON));
 
         // Calculate the centre of the arc start points
-        let centre_point = vector::normalise(&(a1 + a2)).unwrap();
+        let centre_point = vector::normalise(&(a1 + a2), MIN_SQ_NORM).unwrap();
         assert!(sq_distance(&c, &centre_point) > 2.0);
 
         // opposite intersection point

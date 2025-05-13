@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Ken Barker
+// Copyright (c) 2024-2025 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -28,6 +28,13 @@ use crate::{great_circle, Vector3d};
 use angle_sc::{trig, Angle, Radians};
 
 pub mod intersection;
+
+/// The minimum value of the sine of an angle to normalise.
+/// Approximately 7.504e-9 seconds
+pub const MIN_SIN_ANGLE: f64 = 16384.0 * f64::EPSILON;
+
+/// The minimum length of a vector to normalize.
+pub const MIN_SQ_NORM: f64 = MIN_SIN_ANGLE * MIN_SIN_ANGLE;
 
 /// The minimum value of the square of distance.
 pub const MIN_SQ_DISTANCE: f64 = great_circle::MIN_VALUE * great_circle::MIN_VALUE;
@@ -86,15 +93,12 @@ pub fn is_unit(a: &Vector3d) -> bool {
 /// Note: this function returns an `Option` so uses the British spelling of
 /// `normalise` to differentiate it from the standard `normalize` function.
 /// * `a` the `Vector3d`
+/// * `min_sq_value` the minimum square of a vector length to normalize.
 ///
 /// return the nomalized point or None if the vector is too small to normalize.
 #[must_use]
-pub fn normalise(a: &Vector3d) -> Option<Vector3d> {
-    /// The minimum length of a vector to normalize.
-    const MIN_LENGTH: f64 = 16384.0 * f64::EPSILON;
-    const MIN_NORM: f64 = MIN_LENGTH * MIN_LENGTH;
-
-    if a.norm_squared() < MIN_NORM {
+pub fn normalise(a: &Vector3d, min_sq_value: f64) -> Option<Vector3d> {
+    if a.norm_squared() < min_sq_value {
         None
     } else {
         Some(a.normalize())
@@ -383,7 +387,7 @@ pub fn calculate_great_circle_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3
 #[must_use]
 pub fn along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> Radians {
     let plane_point = calculate_point_on_plane(pole, point);
-    normalise(&plane_point).map_or_else(
+    normalise(&plane_point, MIN_SQ_NORM).map_or_else(
         || Radians(0.0), // point is too close to a pole
         |c| calculate_great_circle_atd(a, pole, &c),
     )
@@ -401,7 +405,7 @@ pub fn along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> 
 #[must_use]
 pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) -> f64 {
     let plane_point = calculate_point_on_plane(pole, point);
-    normalise(&plane_point).map_or_else(
+    normalise(&plane_point, MIN_SQ_NORM).map_or_else(
         || 0.0, // point is too close to a pole
         |c| {
             let sq_d = sq_distance(a, &(c));
@@ -438,7 +442,7 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
 
         // the closest point on the plane of the pole to the point
         let plane_point = p - pole * sin_xtd;
-        atd = normalise(&plane_point).map_or_else(
+        atd = normalise(&plane_point, MIN_SQ_NORM).map_or_else(
             || Radians(0.0), // point is too close to a pole
             |c| calculate_great_circle_atd(a, pole, &c),
         );
@@ -456,19 +460,24 @@ mod tests {
     #[test]
     fn test_normalise() {
         let zero = Vector3d::new(0.0, 0.0, 0.0);
-        assert!(normalise(&zero).is_none());
+        assert!(normalise(&zero, MIN_SQ_NORM).is_none());
 
         // Greenwich equator
         let g_eq = Vector3d::new(1.0, 0.0, 0.0);
-        assert!(normalise(&g_eq).is_some());
+        assert!(normalise(&g_eq, MIN_SQ_NORM).is_some());
 
         // A vector just too small to normalize
         let too_small = Vector3d::new(16383.0 * f64::EPSILON, 0.0, 0.0);
-        assert!(normalise(&too_small).is_none());
+        assert!(normalise(&too_small, MIN_SQ_NORM).is_none());
+
+        assert_eq!(
+            2.0844083160439303e-10,
+            libm::asin(MIN_SIN_ANGLE).to_degrees()
+        );
 
         // A vector just large enough to normalize
-        let small = Vector3d::new(16384.0 * f64::EPSILON, 0.0, 0.0);
-        let result = normalise(&small);
+        let small = Vector3d::new(MIN_SIN_ANGLE, 0.0, 0.0);
+        let result = normalise(&small, MIN_SQ_NORM);
         assert!(result.is_some());
 
         assert!(is_unit(&result.unwrap()));

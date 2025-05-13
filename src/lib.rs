@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Ken Barker
+// Copyright (c) 2024-2025 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@
 //! on the surface of a unit sphere, see *Figure 1*.
 //!
 //! ![great circle arc](https://via-technology.aero/img/navigation/sphere/great_circle_arc.svg)
-//! 
+//!
 //! *Figure 1 A Great Circle Arc*
 //!
 //! A [great circle](https://en.wikipedia.org/wiki/Great_circle) is the
@@ -61,9 +61,9 @@
 //! Many calculations are simpler using vectors than spherical trigonometry.
 //!
 //! ![Spherical Vector Coordinates](https://via-technology.aero/img/navigation/sphere/ecef_coordinates.svg)
-//! 
+//!
 //! *Figure 2 Spherical Vector Coordinates*
-//! 
+//!
 //! For example, the across track distance of a point from a great circle can
 //! be calculated from the [dot product](https://en.wikipedia.org/wiki/Dot_product)
 //! of the point and the great circle pole vectors.
@@ -79,7 +79,7 @@
 //!
 //! The software uses types: `Angle`, `Degrees` and `Radians` from the
 //! [angle-sc](https://crates.io/crates/angle-sc) crate.
-//! 
+//!
 //! The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
 //! so it can be used in embedded applications.
 //!
@@ -463,7 +463,7 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
         let a = Vector3d::from(params.0);
         let b = Vector3d::from(params.1);
         // Calculate the great circle pole
-        vector::normalise(&a.cross(&b)).map_or_else(
+        vector::normalise(&a.cross(&b), vector::MIN_SQ_NORM).map_or_else(
             || {
                 if vector::sq_distance(&a, &b) < 1.0 {
                     Err("Positions are too close")
