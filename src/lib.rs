@@ -117,7 +117,6 @@ extern crate nalgebra as na;
 pub mod great_circle;
 pub mod vector;
 
-use angle_sc::trig;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 use thiserror::Error;
 
@@ -249,26 +248,13 @@ impl From<&LatLong> for Vector3d {
     }
 }
 
-/// Calculate the latitude of a Point.
-#[must_use]
-pub fn latitude(a: &Vector3d) -> Angle {
-    let sin_a = trig::UnitNegRange(a.z);
-    Angle::new(sin_a, trig::swap_sin_cos(sin_a))
-}
-
-/// Calculate the longitude of a Point.
-#[must_use]
-pub fn longitude(a: &Vector3d) -> Angle {
-    Angle::from_y_x(a.y, a.x)
-}
-
 impl From<&Vector3d> for LatLong {
     /// Convert a point to a `LatLong`
     #[must_use]
     fn from(value: &Vector3d) -> Self {
         Self::new(
-            Degrees::from(latitude(value)),
-            Degrees::from(longitude(value)),
+            Degrees::from(vector::latitude(value)),
+            Degrees::from(vector::longitude(value)),
         )
     }
 }
@@ -631,8 +617,8 @@ mod tests {
         assert_eq!(1.0, point.y);
         assert_eq!(0.0, point.z);
 
-        assert_eq!(Degrees(0.0), Degrees::from(latitude(&point)));
-        assert_eq!(Degrees(90.0), Degrees::from(longitude(&point)));
+        assert_eq!(Degrees(0.0), Degrees::from(vector::latitude(&point)));
+        assert_eq!(Degrees(90.0), Degrees::from(vector::longitude(&point)));
 
         let result = LatLong::from(&point);
         assert_eq!(a, result);
@@ -733,7 +719,7 @@ mod tests {
         assert_eq!(0.0, mid_point.z);
         assert!(is_within_tolerance(
             45.0,
-            Degrees::from(longitude(&mid_point)).0,
+            Degrees::from(vector::longitude(&mid_point)).0,
             32.0 * f64::EPSILON
         ));
 

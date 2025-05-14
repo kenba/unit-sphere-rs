@@ -200,10 +200,11 @@ pub fn calculate_azimuth(point: &Vector3d, pole: &Vector3d) -> Angle {
     let sin_lat = point.z;
     // if the point is close to the North or South poles, azimuth is 180 or 0.
     if MAX_LAT <= libm::fabs(sin_lat) {
+        // azimuth is zero or 180 degrees
         return if sin_lat.is_sign_negative() {
             Angle::default()
         } else {
-            Angle::default().opposite()
+            Angle::new(trig::UnitNegRange(0.0), trig::UnitNegRange(-1.0))
         };
     }
 

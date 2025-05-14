@@ -123,7 +123,7 @@ pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> An
             Angle::default()
         } else {
             // North pole, azimuth is 180 degrees
-            Angle::default().opposite()
+            Angle::new(trig::UnitNegRange(0.0), trig::UnitNegRange(-1.0))
         }
     } else {
         let sin_azimuth = b_lat.cos().0 * delta_long.sin().0;
