@@ -148,7 +148,6 @@ impl Validate for LatLong {
     ///
     /// I.e. whether the latitude lies in the range: -90.0 <= lat <= 90.0
     /// and the longitude lies in the range: -180.0 <= lon <= 180.0
-    #[must_use]
     fn is_valid(&self) -> bool {
         is_valid_latitude(self.lat.0) && is_valid_longitude(self.lon.0)
     }
@@ -242,7 +241,6 @@ impl From<&LatLong> for Vector3d {
     /// * `lon` - the longitude.
     ///
     /// returns a `Vector3d` of the point on the unit sphere.
-    #[must_use]
     fn from(a: &LatLong) -> Self {
         vector::to_point(Angle::from(a.lat), Angle::from(a.lon))
     }
@@ -250,7 +248,6 @@ impl From<&LatLong> for Vector3d {
 
 impl From<&Vector3d> for LatLong {
     /// Convert a point to a `LatLong`
-    #[must_use]
     fn from(value: &Vector3d) -> Self {
         Self::new(
             Degrees::from(vector::latitude(value)),

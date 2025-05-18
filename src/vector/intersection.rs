@@ -21,15 +21,15 @@
 //! The `intersection` module contains functions for calculating great-circle
 //! intersections using vectors.
 //!
-//! A pair of great circles intersect at two points unless they are coincident.  
+//! A pair of great circles intersect at two points unless they are coincident.\
 //! For example, points `u` and `v` in *Figure1*.
 //!
-//! ![great circle path](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Illustration_of_great-circle_distance.svg/220px-Illustration_of_great-circle_distance.svg.png)  
+//! ![great circle path](https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Illustration_of_great-circle_distance.svg/220px-Illustration_of_great-circle_distance.svg.png)\
 //! *Figure 1 A pair of intersecting great circles*
 //!
 //! A great circle intersection point can simply be calculated by normalizing
 //! the [cross product](https://en.wikipedia.org/wiki/Cross_product) of their
-//! pole vectors.  
+//! pole vectors.\
 //! If the resulting vector is too small to normalize, then the great circles
 //! are coincident, in which case they effectively *intersect* everywhere.
 //!
@@ -49,7 +49,7 @@ use super::{
 use angle_sc::{max, Radians};
 
 /// Calculate an intersection point between the poles of two Great Circles.
-/// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>  
+/// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>
 /// * `pole1`, `pole2` the poles.
 /// * `min_sq_value` the minimum square of a vector length to normalize.
 ///
