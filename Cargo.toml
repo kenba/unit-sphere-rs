@@ -13,7 +13,8 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-angle-sc = "0.3"
+# angle-sc = "0.3"
+angle-sc = { path = "../angle-sc-rs" }
 libm = "0.2"
 nalgebra = "0.33"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
