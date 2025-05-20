@@ -148,6 +148,7 @@ pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> An
 /// * `delta_long` - longitude difference between start and finish points.
 ///
 /// returns the Great Circle distance between the points (sigma) as an Angle.
+#[must_use]
 pub fn calculate_sigma(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
     let a = b_lat.cos().0 * delta_long.sin().0;
     let b = a_lat.cos().0 * b_lat.sin().0 - a_lat.sin().0 * b_lat.cos().0 * delta_long.cos().0;
@@ -159,11 +160,13 @@ pub fn calculate_sigma(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
 }
 
 /// Calculate the latitude at great circle distance, sigma.
+///
+/// From Eurocae ED-323 Appendix E.
 /// * `a_lat` - the latitude of the start point.
-/// * `azi` - the azimuth at a_lat.
+/// * `azi` - the azimuth at `a_lat`.
 /// * `sigma` - the distance on the auxiliary sphere as an Angle.
 ///
-/// return the latitude at sigma from a_lat.
+/// return the latitude at sigma from `a_lat`.
 #[must_use]
 pub fn calculate_latitude(lat: Angle, azi: Angle, sigma: Angle) -> Angle {
     let sin_lat =
@@ -178,24 +181,24 @@ pub fn calculate_latitude(lat: Angle, azi: Angle, sigma: Angle) -> Angle {
 
 /// Calculate the longitude difference at great circle distance, sigma.
 /// * `a_lat` - the latitude of the start point.
-/// * `azi` - the azimuth at a_lat.
+/// * `azi` - the azimuth at `a_lat`.
 /// * `sigma` - the distance on the auxiliary sphere as an Angle.
 ///
-/// return the longitude difference from a_lat.
+/// return the longitude difference from `a_lat`.
 #[must_use]
 pub fn calculate_delta_longitude(lat: Angle, azi: Angle, sigma: Angle) -> Angle {
-    let sin_lon = trig::UnitNegRange(sigma.sin().0 * azi.sin().0);
-    let cos_lon =
-        trig::UnitNegRange(lat.cos().0 * sigma.cos().0 - lat.sin().0 * sigma.sin().0 * azi.cos().0);
+    let sin_lon = sigma.sin().0 * azi.sin().0;
+    let cos_lon = lat.cos().0 * sigma.cos().0 - lat.sin().0 * sigma.sin().0 * azi.cos().0;
 
-    Angle::new(sin_lon, cos_lon)
+    Angle::from_y_x(sin_lon, cos_lon)
 }
 
-/// Calculate the azimuth at latitude b_lat given the latitude a_lat and azimuth, `alpha1`.
+/// Calculate the azimuth at latitude `b_lat` given the latitude `a_lat` and azimuth, `alpha1`.
 /// * `a_lat`, `b_lat` - the latitudes of the points on the unit sphere.
-/// * `azi` - the azimuth at a_lat.
+/// * `azi` - the azimuth at `a_lat`.
 ///
-/// returns the azimuth at b_lat.
+/// returns the azimuth at `b_lat`.
+#[allow(clippy::float_cmp)]
 #[must_use]
 pub fn calculate_other_azimuth(a_lat: Angle, b_lat: Angle, azi: Angle) -> Angle {
     let clairaut = trig::UnitNegRange(azi.sin().0 * a_lat.cos().0);
@@ -262,6 +265,12 @@ mod tests {
             haversine_distance.0,
             f64::EPSILON
         ));
+        let sigma = calculate_sigma(angle_0, angle_45, -angle_45);
+        assert!(is_within_tolerance(
+            gc_distance.0,
+            Radians::from(sigma).0,
+            f64::EPSILON
+        ));
 
         let gc_azimuth = calculate_gc_azimuth(angle_0, angle_45, -angle_45);
         assert!(is_within_tolerance(
@@ -270,13 +279,35 @@ mod tests {
             32.0 * f64::EPSILON
         ));
 
+        let latitude = calculate_latitude(angle_0, gc_azimuth, sigma);
+        assert_eq!(angle_45, latitude);
+
+        let delta_lon = calculate_delta_longitude(angle_0, gc_azimuth, sigma);
+        assert!(is_within_tolerance(
+            -45.0,
+            Degrees::from(delta_lon).0,
+            f64::EPSILON
+        ));
+
         let gc_distance = calculate_gc_distance(angle_45, angle_45, angle_0);
         assert_eq!(0.0, gc_distance.0);
         let haversine_distance = calculate_haversine_distance(angle_45, angle_45, angle_0, angle_0);
         assert_eq!(0.0, haversine_distance.0);
+        let sigma = calculate_sigma(angle_45, angle_45, angle_0);
+        assert_eq!(0.0, Radians::from(sigma).0);
 
         let gc_azimuth = calculate_gc_azimuth(angle_45, angle_45, angle_0);
         assert_eq!(0.0, Degrees::from(gc_azimuth).0);
+
+        let latitude = calculate_latitude(angle_45, gc_azimuth, sigma);
+        assert!(is_within_tolerance(
+            45.0,
+            Degrees::from(latitude).0,
+            f64::EPSILON
+        ));
+
+        let delta_lon = calculate_delta_longitude(angle_45, gc_azimuth, sigma);
+        assert_eq!(0.0, Degrees::from(delta_lon).0);
     }
 
     #[test]
@@ -315,7 +346,7 @@ mod tests {
         assert!(is_within_tolerance(
             13.530064432438888,
             Degrees::from(result).0,
-            16.0 * f64::EPSILON
+            f64::EPSILON
         ));
 
         let result: Angle = calculate_other_azimuth(-angle_50, angle_50, angle_20);
@@ -324,7 +355,4 @@ mod tests {
         let result: Angle = calculate_other_azimuth(angle_45, angle_45, angle_90);
         assert_eq!(90.0, Degrees::from(result).0);
     }
-
-    #[test]
-    fn test_calculate_lat_delta_lon() {}
 }
