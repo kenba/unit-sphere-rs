@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Ken Barker
+// Copyright (c) 2024-2025 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -193,44 +193,6 @@ pub fn calculate_delta_longitude(lat: Angle, azi: Angle, sigma: Angle) -> Angle 
     Angle::from_y_x(sin_lon, cos_lon)
 }
 
-/// Calculate the azimuth at latitude `b_lat` given the latitude `a_lat` and azimuth, `alpha1`.
-/// * `a_lat`, `b_lat` - the latitudes of the points on the unit sphere.
-/// * `azi` - the azimuth at `a_lat`.
-///
-/// returns the azimuth at `b_lat`.
-#[allow(clippy::float_cmp)]
-#[must_use]
-pub fn calculate_other_azimuth(a_lat: Angle, b_lat: Angle, azi: Angle) -> Angle {
-    let clairaut = trig::UnitNegRange(azi.sin().0 * a_lat.cos().0);
-
-    let sin_alpha2 = if b_lat.cos() == a_lat.cos() {
-        azi.sin()
-    } else {
-        trig::UnitNegRange::clamp(clairaut.0 / b_lat.cos().0)
-    };
-
-    // Karney's method to calculate the cosine of the other azimuth
-    let cos_alpha2 = if (b_lat.cos() != a_lat.cos()) || (b_lat.sin().abs().0 != -a_lat.sin().0) {
-        let temp1 = azi.cos().0 * a_lat.cos().0;
-        let temp2 = if a_lat.cos().0 < a_lat.abs().sin().0 {
-            trig::sq_a_minus_sq_b(b_lat.cos(), a_lat.cos()).0
-        } else {
-            trig::sq_a_minus_sq_b(a_lat.sin(), b_lat.sin()).0
-        };
-        let temp3 = temp1 * temp1 + temp2;
-        let temp4 = if temp3 > 0.0 {
-            libm::sqrt(temp3) / b_lat.cos().0
-        } else {
-            0.0
-        };
-        trig::UnitNegRange::clamp(temp4)
-    } else {
-        azi.cos().abs()
-    };
-
-    Angle::new(sin_alpha2, cos_alpha2)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,33 +288,5 @@ mod tests {
         // From North Pole
         let gc_azimuth = calculate_gc_azimuth(angle_90, angle_45, angle_0);
         assert_eq!(angle_180, gc_azimuth);
-    }
-
-    #[test]
-    fn test_calculate_other_azimuth() {
-        let angle_90 = Angle::from(Degrees(90.0));
-        let angle_50 = Angle::from(Degrees(50.0));
-        let angle_45 = Angle::from(Degrees(45.0));
-        let angle_20 = Angle::from(Degrees(20.0));
-
-        let result: Angle = calculate_other_azimuth(angle_20, angle_50, angle_20);
-        assert!(is_within_tolerance(
-            30.0,
-            Degrees::from(result).0,
-            16.0 * f64::EPSILON
-        ));
-
-        let result: Angle = calculate_other_azimuth(angle_50, angle_20, angle_20);
-        assert!(is_within_tolerance(
-            13.530064432438888,
-            Degrees::from(result).0,
-            f64::EPSILON
-        ));
-
-        let result: Angle = calculate_other_azimuth(-angle_50, angle_50, angle_20);
-        assert_eq!(20.0, Degrees::from(result).0);
-
-        let result: Angle = calculate_other_azimuth(angle_45, angle_45, angle_90);
-        assert_eq!(90.0, Degrees::from(result).0);
     }
 }
