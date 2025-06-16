@@ -86,6 +86,19 @@ pub fn calculate_intersection_distances(
     )
 }
 
+/// Whether an along track distance is within an `Arc` length including tolerance.
+///
+/// * `distance` - the along track distance from the start of the `Arc`.
+/// * `length` the length of the `Arc`.
+/// * `tolerance` the distance tolerance.
+///
+/// return true if the along track distance is within the length including tolerance,
+/// false otherwise.
+#[must_use]
+pub fn is_alongside(distance: Radians, length: Radians, tolerance: Radians) -> bool {
+    (-tolerance <= distance) && (distance <= length + tolerance)
+}
+
 /// Whether an intersection point is within an `Arc`.
 ///
 /// * `distance` - the along track distance to the point from the start of the `Arc`.
@@ -115,13 +128,17 @@ pub fn calculate_coincident_arc_distances(
 ) -> (Radians, Radians) {
     if reciprocal {
         // if the arcs intersect
-        if is_within(gc_d.0, max(arc1_length, arc2_length).0) {
+        if is_alongside(
+            gc_d,
+            max(arc1_length, arc2_length),
+            Radians(4.0 * f64::EPSILON),
+        ) {
             if gc_d <= arc2_length {
                 // The start of the first `Arc` is within the second `Arc`
-                (Radians(0.0), gc_d)
+                (Radians(0.0), gc_d.clamp(arc2_length))
             } else {
                 // The start of the second `Arc` is within the first `Arc`
-                (gc_d, Radians(0.0))
+                (gc_d.clamp(arc1_length), Radians(0.0))
             }
         } else {
             let abs_d = gc_d.abs();
@@ -301,6 +318,30 @@ mod tests {
         let (e1, e2) = calculate_intersection_distances(&a1, &pole1, &a1, &pole2, &a1);
         assert_eq!(0.0, e1.0);
         assert_eq!(0.0, e2.0);
+    }
+
+    #[test]
+    fn test_is_alongside() {
+        assert!(!is_alongside(
+            Radians(-5.0 * f64::EPSILON),
+            Radians(3.0),
+            Radians(4.0 * f64::EPSILON)
+        ));
+        assert!(is_alongside(
+            Radians(-4.0 * f64::EPSILON),
+            Radians(3.0),
+            Radians(4.0 * f64::EPSILON)
+        ));
+        assert!(is_alongside(
+            Radians(3.0 + 4.0 * f64::EPSILON),
+            Radians(3.0),
+            Radians(4.0 * f64::EPSILON)
+        ));
+        assert!(!is_alongside(
+            Radians(3.0 + 6.0 + f64::EPSILON),
+            Radians(3.0),
+            Radians(4.0 * f64::EPSILON)
+        ));
     }
 
     #[test]

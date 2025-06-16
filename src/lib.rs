@@ -117,6 +117,7 @@ extern crate nalgebra as na;
 pub mod great_circle;
 pub mod vector;
 
+use angle_sc::min;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 use thiserror::Error;
 
@@ -443,6 +444,24 @@ impl Arc {
     pub fn calculate_atd_and_xtd(&self, point: &Vector3d) -> (Radians, Radians) {
         vector::calculate_atd_and_xtd(&self.a, &self.pole(), point)
     }
+
+    /// Calculate the shortest great-circle distance of a point from the `Arc`.
+    ///
+    /// * `point` - the point.
+    ///
+    /// returns the shortest distance of a point from the `Arc` in Radians.
+    #[must_use]
+    pub fn shortest_distance(&self, point: &Vector3d) -> Radians {
+        let (atd, xtd) = self.calculate_atd_and_xtd(point);
+        if vector::intersection::is_alongside(atd, self.length, Radians(4.0 * f64::EPSILON)) {
+            xtd.abs()
+        } else {
+            let sq_a = vector::sq_distance(&self.a, point);
+            let sq_b = vector::sq_distance(&self.b(), point);
+            let sq_d = min(sq_a, sq_b);
+            great_circle::e2gc_distance(libm::sqrt(sq_d))
+        }
+    }
 }
 
 /// A Error type for an invalid `Arc`.
@@ -544,10 +563,10 @@ pub fn calculate_intersection_point(arc1: &Arc, arc2: &Arc) -> Option<Vector3d> 
     let (distance1, distance2) = calculate_intersection_distances(arc1, arc2);
 
     // Determine whether both distances are within both arcs
-    if vector::intersection::is_within(distance1.0, arc1.length().0)
-        && vector::intersection::is_within(distance2.0, arc2.length().0)
+    if vector::intersection::is_alongside(distance1, arc1.length(), Radians(4.0 * f64::EPSILON))
+        && vector::intersection::is_alongside(distance2, arc2.length(), Radians(4.0 * f64::EPSILON))
     {
-        Some(arc1.position(distance1))
+        Some(arc1.position(distance1.clamp(arc1.length())))
     } else {
         None
     }
@@ -854,7 +873,31 @@ mod tests {
             let (atd, xtd) = arc.calculate_atd_and_xtd(&point);
             assert!(is_within_tolerance(1_f64.to_radians(), atd.0, f64::EPSILON));
             assert!(is_within_tolerance(expected, xtd.0, 2.0 * f64::EPSILON));
+
+            let d = arc.shortest_distance(&point);
+            assert!(is_within_tolerance(
+                libm::fabs(expected),
+                d.0,
+                2.0 * f64::EPSILON
+            ));
         }
+
+        let point = Vector3d::from(&g_eq);
+        let d = arc.shortest_distance(&point);
+        assert_eq!(0.0, d.0);
+
+        let point = Vector3d::from(&e_eq);
+        let d = arc.shortest_distance(&point);
+        assert_eq!(0.0, d.0);
+
+        let latlong = LatLong::new(Degrees(0.0), Degrees(-1.0));
+        let point = Vector3d::from(&latlong);
+        let d = arc.shortest_distance(&point);
+        assert!(is_within_tolerance(1_f64.to_radians(), d.0, f64::EPSILON));
+
+        let point = -point;
+        let d = arc.shortest_distance(&point);
+        assert!(is_within_tolerance(89_f64.to_radians(), d.0, f64::EPSILON));
     }
 
     #[test]
