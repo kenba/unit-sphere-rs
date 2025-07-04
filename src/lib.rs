@@ -169,6 +169,28 @@ impl LatLong {
     pub const fn lon(&self) -> Degrees {
         self.lon
     }
+
+    /// Determine whether the `LatLong` is South of  a.
+    ///
+    /// It compares the latitude of the two points.
+    /// * `a` - the other `LatLong`.
+    ///
+    /// returns true if South of a, false otherwise.
+    #[must_use]
+    pub fn is_south_of(&self, a: &Self) -> bool {
+        self.lat.0 < a.lat.0
+    }
+
+    /// Determine whether the `LatLong` is West of `LatLong` a.
+    ///
+    /// It compares the longitude difference of the two points.
+    /// * `a`, `b` - the points.
+    ///
+    /// returns true if a is West of b, false otherwise.
+    #[must_use]
+    pub fn is_west_of(&self, a: &Self) -> bool {
+        (a.lon() - self.lon).0 < 0.0
+    }
 }
 
 /// A Error type for an invalid `LatLong`.
@@ -612,6 +634,13 @@ mod tests {
 
         assert_eq!(Degrees(0.0), a.lat());
         assert_eq!(Degrees(90.0), a.lon());
+
+        assert!(!a.is_south_of(&a));
+        assert!(!a.is_west_of(&a));
+
+        let b = LatLong::try_from((-10.0, -91.0)).unwrap();
+        assert!(b.is_south_of(&a));
+        assert!(b.is_west_of(&a));
 
         println!("LatLong: {:?}", a);
 

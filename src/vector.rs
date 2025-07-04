@@ -153,6 +153,17 @@ pub fn delta_longitude(a: &Vector3d, b: &Vector3d) -> Angle {
     Angle::from_y_x(b_lon.perp(&a_lon), b_lon.dot(&a_lon))
 }
 
+/// Determine whether point a is South of point b.
+///
+/// It calculates and compares the z component of the two points.
+/// * `a`, `b` - the points.
+///
+/// returns true if a is South of b, false otherwise.
+#[must_use]
+pub fn is_south_of(a: &Vector3d, b: &Vector3d) -> bool {
+    a.z < b.z
+}
+
 /// Determine whether point a is West of point b.
 ///
 /// It calculates and compares the perp product of the two points.
@@ -161,8 +172,7 @@ pub fn delta_longitude(a: &Vector3d, b: &Vector3d) -> Angle {
 /// returns true if a is West of b, false otherwise.
 #[must_use]
 pub fn is_west_of(a: &Vector3d, b: &Vector3d) -> bool {
-    // Compare with -epsilon to handle floating point errors
-    b.xy().perp(&a.xy()) <= -f64::EPSILON
+    b.xy().perp(&a.xy()) < 0.0
 }
 
 /// Calculate the right hand pole vector of a Great Circle from an initial
@@ -293,6 +303,19 @@ pub fn rotate_position(a: &Vector3d, pole: &Vector3d, angle: Angle, radius: Angl
 #[must_use]
 fn sin_xtd(pole: &Vector3d, point: &Vector3d) -> trig::UnitNegRange {
     trig::UnitNegRange::clamp(pole.dot(point))
+}
+
+/// Determine whether point is right of a Great Circle pole.
+///
+/// It compares the dot product of the pole and point.
+/// * `pole` - the Great Circle pole.
+/// * `point` - the point.
+///
+/// returns true if the point is right of the pole,
+/// false if on or to the left of the Great Circle.
+#[must_use]
+pub fn is_right_of(pole: &Vector3d, point: &Vector3d) -> bool {
+    pole.dot(point) < 0.0
 }
 
 /// The across track distance of a point relative to a Great Circle pole.
@@ -706,6 +729,10 @@ mod tests {
             let latitude = Degrees(lat as f64);
             let latlong = LatLong::new(latitude, longitude);
             let point = Vector3d::from(&latlong);
+
+            assert_eq!(lat < 0, is_south_of(&point, &g_eq));
+            assert_eq!(lat >= 0, !is_south_of(&point, &e_eq));
+            assert_eq!(lat < 0, is_right_of(&pole_0, &point));
 
             let expected = (lat as f64).to_radians();
             let xtd = cross_track_distance(&pole_0, &point);
