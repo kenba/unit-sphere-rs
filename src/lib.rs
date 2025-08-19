@@ -117,7 +117,6 @@ extern crate nalgebra as na;
 pub mod great_circle;
 pub mod vector;
 
-use angle_sc::min;
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
 use thiserror::Error;
 
@@ -415,7 +414,7 @@ impl Arc {
     /// The mid point of the `Arc`.
     #[must_use]
     pub fn mid_point(&self) -> Vector3d {
-        self.position(Radians(0.5 * self.length.0))
+        self.position(self.length.half())
     }
 
     /// The position of a perpendicular point at distance from the `Arc`.
@@ -478,10 +477,14 @@ impl Arc {
         if vector::intersection::is_alongside(atd, self.length, Radians(4.0 * f64::EPSILON)) {
             xtd.abs()
         } else {
-            let sq_a = vector::sq_distance(&self.a, point);
-            let sq_b = vector::sq_distance(&self.b(), point);
-            let sq_d = min(sq_a, sq_b);
-            great_circle::e2gc_distance(libm::sqrt(sq_d))
+            // adjust atd to measure the distance from the centre of the Arc to the point
+            let atd_centre = atd - self.length.half();
+            let p = if atd_centre.0.is_sign_negative() {
+                self.a
+            } else {
+                self.b()
+            };
+            great_circle::e2gc_distance(vector::distance(&p, point))
         }
     }
 }
@@ -597,7 +600,7 @@ pub fn calculate_intersection_point(arc1: &Arc, arc2: &Arc) -> Option<Vector3d> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use angle_sc::{is_within_tolerance, Degrees};
+    use angle_sc::{Degrees, is_within_tolerance};
 
     #[test]
     fn test_is_valid_latitude() {
@@ -927,6 +930,16 @@ mod tests {
         let point = -point;
         let d = arc.shortest_distance(&point);
         assert!(is_within_tolerance(89_f64.to_radians(), d.0, f64::EPSILON));
+
+        // a point closer to the end of the arc than the start
+        let latlong = LatLong::new(Degrees(0.0), Degrees(-160.0));
+        let point = Vector3d::from(&latlong);
+        let d = arc.shortest_distance(&point);
+        // shortest distance is from the end of the arc to the point
+        assert_eq!(
+            great_circle::e2gc_distance(vector::distance(&arc.b(), &point)),
+            d
+        );
     }
 
     #[test]
