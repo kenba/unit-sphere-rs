@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["geometry", "navigation", "sphere"]
 categories = ["mathematics", "no-std", "science"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 angle-sc = "1.1"
