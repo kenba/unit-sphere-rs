@@ -21,7 +21,7 @@
 //! The `great_circle` module contains functions for calculating the course
 //! and distance between points along great circles on a unit sphere.
 
-use angle_sc::{trig, Angle, Radians};
+use angle_sc::{Angle, Radians, trig};
 
 /// The minimum value for angles and distances.
 pub const MIN_VALUE: f64 = 2.0 * f64::EPSILON;
@@ -52,7 +52,7 @@ pub fn calculate_haversine_distance(
     if a < MIN_VALUE {
         Radians(0.0)
     } else {
-        Radians(2.0 * libm::asin(libm::sqrt(a)))
+        Radians(2.0 * a.sqrt().asin())
     }
 }
 
@@ -60,17 +60,13 @@ pub fn calculate_haversine_distance(
 /// e should satisfy: 0 <= e <= 2, if not it is clamped into range.
 #[must_use]
 pub fn e2gc_distance(e: f64) -> Radians {
-    if e < MIN_VALUE {
-        Radians(0.0)
-    } else {
-        Radians(2.0 * libm::asin(trig::UnitNegRange::clamp(0.5 * e).0))
-    }
+    Radians(2.0 * (0.5 * e.clamp(0.0, 2.0)).asin())
 }
 
 /// Convert a Great Circle distance (in radians) to a Euclidean distance.
 #[must_use]
 pub fn gc2e_distance(gc: Radians) -> f64 {
-    2.0 * libm::sin(0.5 * gc.0)
+    2.0 * (0.5 * gc.0).sin()
 }
 
 /// Calculate the square of the Euclidean distance (i.e. using Pythagoras)
@@ -102,7 +98,7 @@ pub fn sq_euclidean_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> f
 /// returns the Great Circle distance between the points in Radians.
 #[must_use]
 pub fn calculate_gc_distance(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Radians {
-    e2gc_distance(libm::sqrt(sq_euclidean_distance(a_lat, b_lat, delta_long)))
+    e2gc_distance(sq_euclidean_distance(a_lat, b_lat, delta_long).sqrt())
 }
 
 /// Calculate the azimuth (bearing) along the great circle of point b from
@@ -152,7 +148,7 @@ pub fn calculate_gc_azimuth(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> An
 pub fn calculate_sigma(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
     let a = b_lat.cos().0 * delta_long.sin().0;
     let b = a_lat.cos().0 * b_lat.sin().0 - a_lat.sin().0 * b_lat.cos().0 * delta_long.cos().0;
-    let sin_sigma = trig::UnitNegRange(libm::hypot(a, b));
+    let sin_sigma = trig::UnitNegRange(a.hypot(b));
     let cos_sigma = trig::UnitNegRange(
         a_lat.sin().0 * b_lat.sin().0 + a_lat.cos().0 * b_lat.cos().0 * delta_long.cos().0,
     );
@@ -171,10 +167,10 @@ pub fn calculate_sigma(a_lat: Angle, b_lat: Angle, delta_long: Angle) -> Angle {
 pub fn calculate_latitude(lat: Angle, azi: Angle, sigma: Angle) -> Angle {
     let sin_lat =
         trig::UnitNegRange(lat.sin().0 * sigma.cos().0 + lat.cos().0 * sigma.sin().0 * azi.cos().0);
-    let cos_lat = trig::UnitNegRange(libm::hypot(
-        lat.cos().0 * azi.sin().0,
-        lat.sin().0 * sigma.sin().0 - lat.cos().0 * sigma.cos().0 * azi.cos().0,
-    ));
+    let cos_lat = trig::UnitNegRange(
+        (lat.cos().0 * azi.sin().0)
+            .hypot(lat.sin().0 * sigma.sin().0 - lat.cos().0 * sigma.cos().0 * azi.cos().0),
+    );
 
     Angle::new(sin_lat, cos_lat)
 }
@@ -196,7 +192,7 @@ pub fn calculate_delta_longitude(lat: Angle, azi: Angle, sigma: Angle) -> Angle 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use angle_sc::{is_within_tolerance, Degrees};
+    use angle_sc::{Degrees, is_within_tolerance};
 
     #[test]
     fn test_distance_conversion_functions() {

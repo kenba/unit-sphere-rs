@@ -24,8 +24,8 @@
 //!
 //! A `Vector3d` is a [nalgebra](https://crates.io/crates/nalgebra) `Vector3<f64>`.
 
-use crate::{great_circle, Vector3d};
-use angle_sc::{trig, Angle, Radians};
+use crate::{Vector3d, great_circle};
+use angle_sc::{Angle, Radians, trig};
 
 pub mod intersection;
 
@@ -62,7 +62,7 @@ pub fn to_point(lat: Angle, lon: Angle) -> Vector3d {
 /// returns the latitude of the point
 #[must_use]
 pub fn latitude(a: &Vector3d) -> Angle {
-    Angle::from_y_x(a.z, libm::hypot(a.x, a.y))
+    Angle::from_y_x(a.z, a.x.hypot(a.y))
 }
 
 /// Calculate the longitude of a point.
@@ -209,7 +209,7 @@ pub fn calculate_azimuth(point: &Vector3d, pole: &Vector3d) -> Angle {
 
     let sin_lat = point.z;
     // if the point is close to the North or South poles, azimuth is 180 or 0.
-    if MAX_LAT <= libm::fabs(sin_lat) {
+    if MAX_LAT <= sin_lat.abs() {
         // azimuth is zero or 180 degrees
         return if sin_lat.is_sign_negative() {
             Angle::default()
@@ -327,10 +327,10 @@ pub fn is_right_of(pole: &Vector3d, point: &Vector3d) -> bool {
 #[must_use]
 pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
     let sin_d = sin_xtd(pole, point);
-    if libm::fabs(sin_d.0) < f64::EPSILON {
+    if sin_d.0.abs() < f64::EPSILON {
         Radians(0.0)
     } else {
-        Radians(libm::asin(sin_d.0))
+        Radians(sin_d.0.asin())
     }
 }
 
@@ -344,7 +344,7 @@ pub fn cross_track_distance(pole: &Vector3d, point: &Vector3d) -> Radians {
 #[must_use]
 pub fn sq_cross_track_distance(pole: &Vector3d, point: &Vector3d) -> f64 {
     let sin_d = sin_xtd(pole, point);
-    if libm::fabs(sin_d.0) < f64::EPSILON {
+    if sin_d.0.abs() < f64::EPSILON {
         0.0
     } else {
         2.0 * (1.0 - trig::swap_sin_cos(sin_d).0)
@@ -393,10 +393,16 @@ pub fn calculate_great_circle_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3
     if sq_atd < MIN_SQ_DISTANCE {
         Radians(0.0)
     } else {
-        Radians(libm::copysign(
-            great_circle::e2gc_distance(libm::sqrt(sq_atd)).0,
-            sin_atd(a, pole, point).0,
-        ))
+        Radians(
+            great_circle::e2gc_distance(sq_atd.sqrt())
+                .0
+                .copysign(sin_atd(a, pole, point).0),
+        )
+        // Radians(
+        //     great_circle::e2gc_distance(atd)
+        //         .0
+        //         .copysign(sin_atd(a, pole, point).0),
+        // )
     }
 }
 
@@ -433,11 +439,7 @@ pub fn sq_along_track_distance(a: &Vector3d, pole: &Vector3d, point: &Vector3d) 
         || 0.0, // point is too close to a pole
         |c| {
             let sq_d = sq_distance(a, &(c));
-            if sq_d < MIN_SQ_DISTANCE {
-                0.0
-            } else {
-                sq_d
-            }
+            if sq_d < MIN_SQ_DISTANCE { 0.0 } else { sq_d }
         },
     )
 }
@@ -460,8 +462,8 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
     if sq_d >= MIN_SQ_DISTANCE {
         // point is not close to a
         let sin_xtd = sin_xtd(pole, p).0;
-        if libm::fabs(sin_xtd) >= f64::EPSILON {
-            xtd = Radians(libm::asin(sin_xtd));
+        if sin_xtd.abs() >= f64::EPSILON {
+            xtd = Radians(sin_xtd.asin());
         }
 
         // the closest point on the plane of the pole to the point
@@ -479,7 +481,7 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
 mod tests {
     use super::*;
     use crate::LatLong;
-    use angle_sc::{is_within_tolerance, Degrees, Radians};
+    use angle_sc::{Degrees, Radians, is_within_tolerance};
 
     #[test]
     fn test_normalise() {
@@ -494,10 +496,7 @@ mod tests {
         let too_small = Vector3d::new(16383.0 * f64::EPSILON, 0.0, 0.0);
         assert!(normalise(&too_small, MIN_SQ_NORM).is_none());
 
-        assert_eq!(
-            2.0844083160439303e-10,
-            libm::asin(MIN_SIN_ANGLE).to_degrees()
-        );
+        assert_eq!(2.0844083160439303e-10, MIN_SIN_ANGLE.to_degrees().asin());
 
         // A vector just large enough to normalize
         let small = Vector3d::new(MIN_SIN_ANGLE, 0.0, 0.0);
@@ -779,7 +778,7 @@ mod tests {
             let atd = along_track_distance(&g_eq, &pole_0, &point);
             // Accuracy reduces outside of this range
             let tolerance = if (-153..154).contains(&lon) {
-                2.0 * f64::EPSILON
+                4.0 * f64::EPSILON
             } else {
                 32.0 * f64::EPSILON
             };

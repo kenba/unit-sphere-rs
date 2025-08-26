@@ -44,9 +44,9 @@
 //! along the `Arc`s to the intersection point.
 
 use super::{
-    calculate_great_circle_atd, normalise, sq_distance, Vector3d, MIN_SQ_DISTANCE, MIN_SQ_NORM,
+    MIN_SQ_DISTANCE, MIN_SQ_NORM, Vector3d, calculate_great_circle_atd, normalise, sq_distance,
 };
-use angle_sc::{max, Radians};
+use angle_sc::{Radians, max};
 
 /// Calculate an intersection point between the poles of two Great Circles.
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>
@@ -246,8 +246,8 @@ pub fn calculate_intersection_point_distances(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{vector, LatLong};
-    use angle_sc::{is_within_tolerance, Angle, Degrees};
+    use crate::{LatLong, vector};
+    use angle_sc::{Angle, Degrees, is_within_tolerance};
 
     #[test]
     fn test_calculate_intersection() {

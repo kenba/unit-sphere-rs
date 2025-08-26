@@ -907,11 +907,7 @@ mod tests {
             assert!(is_within_tolerance(expected, xtd.0, 2.0 * f64::EPSILON));
 
             let d = arc.shortest_distance(&point);
-            assert!(is_within_tolerance(
-                libm::fabs(expected),
-                d.0,
-                2.0 * f64::EPSILON
-            ));
+            assert!(is_within_tolerance(expected.abs(), d.0, 2.0 * f64::EPSILON));
         }
 
         let point = Vector3d::from(&g_eq);
