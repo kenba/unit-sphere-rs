@@ -398,11 +398,6 @@ pub fn calculate_great_circle_atd(a: &Vector3d, pole: &Vector3d, point: &Vector3
                 .0
                 .copysign(sin_atd(a, pole, point).0),
         )
-        // Radians(
-        //     great_circle::e2gc_distance(atd)
-        //         .0
-        //         .copysign(sin_atd(a, pole, point).0),
-        // )
     }
 }
 

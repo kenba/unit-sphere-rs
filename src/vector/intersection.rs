@@ -246,7 +246,7 @@ pub fn calculate_intersection_point_distances(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{LatLong, vector};
+    use crate::{LatLong, great_circle, vector};
     use angle_sc::{Angle, Degrees, is_within_tolerance};
 
     #[test]
@@ -393,5 +393,50 @@ mod tests {
         let result8 = calculate_coincident_arc_distances(length1, false, length1, length2);
         assert_eq!(length1, result8.0);
         assert_eq!(zero, result8.1);
+    }
+
+    #[test]
+    fn test_calculate_coincident_intersection_point_distances() {
+        let start1 = LatLong::new(Degrees(0.0), Degrees(0.0));
+        let a1 = Vector3d::from(&start1);
+        let end1 = LatLong::new(Degrees(0.0), Degrees(-4.0));
+        let b1 = Vector3d::from(&end1);
+        let pole1 = &a1.cross(&b1).normalize();
+        let length1 = great_circle::e2gc_distance(vector::distance(&a1, &b1));
+        let mid_point1 = (a1 + b1).normalize();
+
+        let start2 = LatLong::new(Degrees(0.0), Degrees(0.25));
+        let a2 = Vector3d::from(&start2);
+        let end2 = LatLong::new(Degrees(0.0), Degrees(4.0));
+        let b2 = Vector3d::from(&end2);
+        let pole2 = &a2.cross(&b2).normalize();
+        let length2 = great_circle::e2gc_distance(vector::distance(&a2, &b2));
+        let mid_point2 = (a2 + b2).normalize();
+
+        let centriod = 0.5 * (mid_point1 + mid_point2);
+
+        let distances = calculate_intersection_point_distances(
+            &a1, &pole1, length1, &a2, &pole2, length2, &centriod,
+        );
+        assert!(is_within_tolerance(
+            -0.25_f64.to_radians(),
+            distances.0.0,
+            f64::EPSILON
+        ));
+        assert_eq!(0.0, distances.1.0);
+
+        let pole1r = -pole1;
+        let pole2r = -pole2;
+
+        let distances = calculate_intersection_point_distances(
+            &b1, &pole1r, length1, &b2, &pole2r, length2, &centriod,
+        );
+
+        assert!(is_within_tolerance(
+            4.25_f64.to_radians(),
+            distances.0.0,
+            f64::EPSILON
+        ));
+        assert_eq!(length2.0, distances.1.0);
     }
 }
