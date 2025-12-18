@@ -50,39 +50,39 @@ use angle_sc::{Radians, max};
 
 /// Calculate an intersection point between the poles of two Great Circles.
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>
-/// * `pole1`, `pole2` the poles.
+/// * `pole_0`, `pole_1` the poles.
 /// * `min_sq_value` the minimum square of a vector length to normalize.
 ///
 /// return an intersection point or None if the poles represent coincident Great Circles.
 #[must_use]
 pub fn calculate_intersection(
-    pole1: &Vector3d,
-    pole2: &Vector3d,
+    pole_0: &Vector3d,
+    pole_1: &Vector3d,
     min_sq_value: f64,
 ) -> Option<Vector3d> {
-    normalise(&pole1.cross(pole2), min_sq_value)
+    normalise(&pole_0.cross(pole_1), min_sq_value)
 }
 
-/// Calculate the great circle distances to an intersection point from the
-/// start points of a pair of great circle arcs, on different great circles.
+/// Calculate the great circle distances to an intersection point from
+/// points on a pair of great circle arcs, on different great circles.
 ///
-/// * `a1`, `a2` the start points of the great circle arcs
-/// * `pole1`, `pole2` the poles of the great circle arcs
+/// * `a_0`, `a_1` the points on the great circle arcs
+/// * `pole_0`, `pole_1` the poles of the great circle arcs
 /// * `c` the intersection point
 ///
 /// returns a pair of great circle distances along the arcs to the
 /// intersection point in `Radians`.
 #[must_use]
 pub fn calculate_intersection_distances(
-    a1: &Vector3d,
-    pole1: &Vector3d,
-    a2: &Vector3d,
-    pole2: &Vector3d,
+    a_0: &Vector3d,
+    pole_0: &Vector3d,
+    a_1: &Vector3d,
+    pole_1: &Vector3d,
     c: &Vector3d,
 ) -> (Radians, Radians) {
     (
-        calculate_great_circle_atd(a1, pole1, c),
-        calculate_great_circle_atd(a2, pole2, c),
+        calculate_great_circle_atd(a_0, pole_0, c),
+        calculate_great_circle_atd(a_1, pole_1, c),
     )
 }
 
@@ -115,7 +115,7 @@ pub fn is_within(distance: f64, length: f64) -> bool {
 ///
 /// * `gc_d` the great-circle distance between the arc start points.
 /// * `reciprocal` whether the arcs are in reciprocal directions.
-/// * `arc1_length`, `arc2_length` the `Arc` lengths in `Radians`.
+/// * `arc_length_0`, `arc_length_1` the `Arc` lengths in `Radians`.
 ///
 /// returns the distances along the first `Arc` and second `Arc` to their closest
 /// (reference) points in `Radians`.
@@ -123,28 +123,28 @@ pub fn is_within(distance: f64, length: f64) -> bool {
 pub fn calculate_coincident_arc_distances(
     gc_d: Radians,
     reciprocal: bool,
-    arc1_length: Radians,
-    arc2_length: Radians,
+    arc_length_0: Radians,
+    arc_length_1: Radians,
 ) -> (Radians, Radians) {
     if reciprocal {
         // if the arcs intersect
         if is_alongside(
             gc_d,
-            max(arc1_length, arc2_length),
+            max(arc_length_0, arc_length_1),
             Radians(4.0 * f64::EPSILON),
         ) {
-            if gc_d <= arc2_length {
+            if gc_d <= arc_length_1 {
                 // The start of the first `Arc` is within the second `Arc`
-                (Radians(0.0), gc_d.clamp(arc2_length))
+                (Radians(0.0), gc_d.clamp(arc_length_1))
             } else {
                 // The start of the second `Arc` is within the first `Arc`
-                (gc_d.clamp(arc1_length), Radians(0.0))
+                (gc_d.clamp(arc_length_0), Radians(0.0))
             }
         } else {
             let abs_d = gc_d.abs();
 
             // The distance between the `Arc` b ends
-            let b_d = abs_d.0 - arc1_length.0 - arc2_length.0;
+            let b_d = abs_d.0 - arc_length_0.0 - arc_length_1.0;
             // The distance between the `Arc` b ends around the Great Circle
             let b_gc_d = if Radians(0.0) < gc_d {
                 b_d
@@ -153,7 +153,7 @@ pub fn calculate_coincident_arc_distances(
             };
             if b_gc_d < abs_d.0 {
                 // The end of the second `Arc` is beyond the end of first `Arc`
-                (Radians(b_gc_d) + arc1_length, arc2_length)
+                (Radians(b_gc_d) + arc_length_0, arc_length_1)
             } else {
                 // The start of the second `Arc` is before the start of first `Arc`
                 (-abs_d, Radians(0.0))
@@ -162,22 +162,22 @@ pub fn calculate_coincident_arc_distances(
     } else {
         // The distance to the start of arc2 from the end of arc1
         let b1a2 = if Radians(0.0) < gc_d {
-            gc_d.0 - arc1_length.0
+            gc_d.0 - arc_length_0.0
         } else {
-            core::f64::consts::TAU + gc_d.0 - arc1_length.0
+            core::f64::consts::TAU + gc_d.0 - arc_length_0.0
         };
         // The distance to the start of arc1 from the end of arc2
         let b2a1 = if Radians(0.0) < gc_d {
-            core::f64::consts::TAU - gc_d.0 - arc2_length.0
+            core::f64::consts::TAU - gc_d.0 - arc_length_1.0
         } else {
-            -gc_d.0 - arc2_length.0
+            -gc_d.0 - arc_length_1.0
         };
         if b2a1 < b1a2 {
             // The start of the first arc is within the second arc
-            (Radians(0.0), Radians(b2a1 + arc2_length.0))
+            (Radians(0.0), Radians(b2a1 + arc_length_1.0))
         } else {
             // The start of the second arc relative to the start of first arc.
-            (Radians(b1a2 + arc1_length.0), Radians(0.0))
+            (Radians(b1a2 + arc_length_0.0), Radians(0.0))
         }
     }
 }
@@ -199,35 +199,35 @@ pub fn use_antipodal_point(point: &Vector3d, centroid: &Vector3d) -> bool {
 /// closest intersection point or their coincident arc distances if the
 /// `Arc`s are on coincident Great Circles.
 ///
-/// * `a1`, `a2` the `Arc` start points.
-/// * `pole1`, `pole1` the `Arc` poles.
-/// * `length1`, `length2` the `Arc` lengths.
+/// * `a_0`, `a_1` the `Arc` start points.
+/// * `pole_0`, `pole_0` the `Arc` poles.
+/// * `arc_length_0`, `arc_length_1` the `Arc` lengths.
 /// * `centroid` the centroid (geometric mean) of the `Arc`s mid points.
 ///
 /// returns the distances along the first arc and second arc to the intersection
 /// point or to their coincident arc distances if the arcs do not intersect.
 #[must_use]
 pub fn calculate_intersection_point_distances(
-    a1: &Vector3d,
-    pole1: &Vector3d,
-    length1: Radians,
-    a2: &Vector3d,
-    pole2: &Vector3d,
-    length2: Radians,
+    a_0: &Vector3d,
+    pole_0: &Vector3d,
+    arc_length_0: Radians,
+    a_1: &Vector3d,
+    pole_1: &Vector3d,
+    arc_length_1: Radians,
     centroid: &Vector3d,
 ) -> (Radians, Radians) {
     // Calculate the square of the Euclidean distance between the start points.
-    let sq_d = sq_distance(a1, a2);
+    let sq_d = sq_distance(a_0, a_1);
     if sq_d < MIN_SQ_DISTANCE {
         (Radians(0.0), Radians(0.0))
     } else {
-        calculate_intersection(pole1, pole2, MIN_SQ_NORM).map_or_else(
+        calculate_intersection(pole_0, pole_1, MIN_SQ_NORM).map_or_else(
             || {
                 calculate_coincident_arc_distances(
-                    calculate_great_circle_atd(a1, pole1, a2),
-                    pole1.dot(pole2) < 0.0,
-                    length1,
-                    length2,
+                    calculate_great_circle_atd(a_0, pole_0, a_1),
+                    pole_0.dot(pole_1) < 0.0,
+                    arc_length_0,
+                    arc_length_1,
                 )
             },
             |c| {
@@ -237,7 +237,7 @@ pub fn calculate_intersection_point_distances(
                 } else {
                     c
                 };
-                calculate_intersection_distances(a1, pole1, a2, pole2, &c)
+                calculate_intersection_distances(a_0, pole_0, a_1, pole_1, &c)
             },
         )
     }
@@ -272,37 +272,37 @@ mod tests {
     #[test]
     fn test_calculate_intersection_distances() {
         let start1 = LatLong::new(Degrees(-1.0), Degrees(-1.0));
-        let a1 = Vector3d::from(&start1);
+        let a_0 = Vector3d::from(&start1);
         let azimuth1 = Angle::from(Degrees(45.0));
-        let pole1 = vector::calculate_pole(
+        let pole_0 = vector::calculate_pole(
             Angle::from(start1.lat()),
             Angle::from(start1.lon()),
             azimuth1,
         );
 
         let start2 = LatLong::new(Degrees(1.0), Degrees(-1.0));
-        let a2 = Vector3d::from(&start2);
+        let a_1 = Vector3d::from(&start2);
         let azimuth2 = Angle::from(Degrees(135.0));
-        let pole2 = vector::calculate_pole(
+        let pole_1 = vector::calculate_pole(
             Angle::from(start2.lat()),
             Angle::from(start2.lon()),
             azimuth2,
         );
 
-        let c = calculate_intersection(&pole1, &pole2, MIN_SQ_NORM).unwrap();
-        let (c1, c2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &c);
+        let c = calculate_intersection(&pole_0, &pole_1, MIN_SQ_NORM).unwrap();
+        let (c1, c2) = calculate_intersection_distances(&a_0, &pole_0, &a_1, &pole_1, &c);
         assert!(is_within_tolerance(-3.1169124762478333, c1.0, f64::EPSILON));
         assert!(is_within_tolerance(-3.1169124762478333, c2.0, f64::EPSILON));
 
         // Calculate the centre of the arc start points
-        let centre_point = vector::normalise(&(a1 + a2), MIN_SQ_NORM).unwrap();
+        let centre_point = vector::normalise(&(a_0 + a_1), MIN_SQ_NORM).unwrap();
         assert!(sq_distance(&c, &centre_point) > 2.0);
 
         // opposite intersection point
         let d = -c;
         assert!(sq_distance(&d, &centre_point) <= 2.0);
 
-        let (d1, d2) = calculate_intersection_distances(&a1, &pole1, &a2, &pole2, &d);
+        let (d1, d2) = calculate_intersection_distances(&a_0, &pole_0, &a_1, &pole_1, &d);
         assert!(is_within_tolerance(
             0.024680177341956263,
             d1.0,
@@ -315,7 +315,7 @@ mod tests {
         ));
 
         // Same start points and intersection point
-        let (e1, e2) = calculate_intersection_distances(&a1, &pole1, &a1, &pole2, &a1);
+        let (e1, e2) = calculate_intersection_distances(&a_0, &pole_0, &a_0, &pole_1, &a_0);
         assert_eq!(0.0, e1.0);
         assert_eq!(0.0, e2.0);
     }
@@ -355,68 +355,83 @@ mod tests {
     #[test]
     fn test_calculate_coincident_arc_distances() {
         let zero = Radians(0.0);
-        let length1 = Radians(0.25);
-        let length2 = Radians(0.75);
+        let arc_length_0 = Radians(0.25);
+        let arc_length_1 = Radians(0.75);
 
-        let result0 = calculate_coincident_arc_distances(length2, true, length2, length1);
-        assert_eq!(length2, result0.0);
+        let result0 =
+            calculate_coincident_arc_distances(arc_length_1, true, arc_length_1, arc_length_0);
+        assert_eq!(arc_length_1, result0.0);
         assert_eq!(zero, result0.1);
 
-        let result1 = calculate_coincident_arc_distances(length2, true, length1, length2);
+        let result1 =
+            calculate_coincident_arc_distances(arc_length_1, true, arc_length_0, arc_length_1);
         assert_eq!(zero, result1.0);
-        assert_eq!(length2, result1.1);
+        assert_eq!(arc_length_1, result1.1);
 
-        let result2 = calculate_coincident_arc_distances(Radians(1.0), true, length1, length2);
-        assert_eq!(length1, result2.0);
-        assert_eq!(length2, result2.1);
+        let result2 =
+            calculate_coincident_arc_distances(Radians(1.0), true, arc_length_0, arc_length_1);
+        assert_eq!(arc_length_0, result2.0);
+        assert_eq!(arc_length_1, result2.1);
 
-        let result3 = calculate_coincident_arc_distances(Radians(1.5), true, length1, length2);
-        assert_eq!(length2, result3.0);
-        assert_eq!(length2, result3.1);
+        let result3 =
+            calculate_coincident_arc_distances(Radians(1.5), true, arc_length_0, arc_length_1);
+        assert_eq!(arc_length_1, result3.0);
+        assert_eq!(arc_length_1, result3.1);
 
-        let result4 = calculate_coincident_arc_distances(Radians(-1.5), true, length1, length2);
+        let result4 =
+            calculate_coincident_arc_distances(Radians(-1.5), true, arc_length_0, arc_length_1);
         assert_eq!(Radians(-1.5), result4.0);
         assert_eq!(zero, result4.1);
 
-        let result5 = calculate_coincident_arc_distances(Radians(-1.0), false, length1, length2);
+        let result5 =
+            calculate_coincident_arc_distances(Radians(-1.0), false, arc_length_0, arc_length_1);
         assert_eq!(zero, result5.0);
         assert_eq!(Radians(1.0), result5.1);
 
-        let result6 = calculate_coincident_arc_distances(Radians(1.0), false, length1, length2);
+        let result6 =
+            calculate_coincident_arc_distances(Radians(1.0), false, arc_length_0, arc_length_1);
         assert_eq!(Radians(1.0), result6.0);
         assert_eq!(zero, result6.1);
 
-        let result7 = calculate_coincident_arc_distances(-length2, false, length1, length2);
+        let result7 =
+            calculate_coincident_arc_distances(-arc_length_1, false, arc_length_0, arc_length_1);
         assert_eq!(zero, result7.0);
-        assert_eq!(length2, result7.1);
+        assert_eq!(arc_length_1, result7.1);
 
-        let result8 = calculate_coincident_arc_distances(length1, false, length1, length2);
-        assert_eq!(length1, result8.0);
+        let result8 =
+            calculate_coincident_arc_distances(arc_length_0, false, arc_length_0, arc_length_1);
+        assert_eq!(arc_length_0, result8.0);
         assert_eq!(zero, result8.1);
     }
 
     #[test]
     fn test_calculate_coincident_intersection_point_distances() {
         let start1 = LatLong::new(Degrees(0.0), Degrees(0.0));
-        let a1 = Vector3d::from(&start1);
+        let a_0 = Vector3d::from(&start1);
         let end1 = LatLong::new(Degrees(0.0), Degrees(-4.0));
         let b1 = Vector3d::from(&end1);
-        let pole1 = &a1.cross(&b1).normalize();
-        let length1 = great_circle::e2gc_distance(vector::distance(&a1, &b1));
-        let mid_point1 = (a1 + b1).normalize();
+        let pole_0 = &a_0.cross(&b1).normalize();
+        let arc_length_0 = great_circle::e2gc_distance(vector::distance(&a_0, &b1));
+        let mid_point1 = (a_0 + b1).normalize();
 
         let start2 = LatLong::new(Degrees(0.0), Degrees(0.25));
-        let a2 = Vector3d::from(&start2);
+        let a_1 = Vector3d::from(&start2);
         let end2 = LatLong::new(Degrees(0.0), Degrees(4.0));
         let b2 = Vector3d::from(&end2);
-        let pole2 = &a2.cross(&b2).normalize();
-        let length2 = great_circle::e2gc_distance(vector::distance(&a2, &b2));
-        let mid_point2 = (a2 + b2).normalize();
+        let pole_1 = &a_1.cross(&b2).normalize();
+        let arc_length_1 = great_circle::e2gc_distance(vector::distance(&a_1, &b2));
+        let mid_point2 = (a_1 + b2).normalize();
 
         let centriod = 0.5 * (mid_point1 + mid_point2);
 
         let distances = calculate_intersection_point_distances(
-            &a1, &pole1, length1, &a2, &pole2, length2, &centriod,
+            &a_0,
+            &pole_0,
+            arc_length_0,
+            &a_1,
+            &pole_1,
+            arc_length_1,
+            &centriod,
         );
         assert!(is_within_tolerance(
             -0.25_f64.to_radians(),
@@ -425,11 +440,17 @@ mod tests {
         ));
         assert_eq!(0.0, distances.1.0);
 
-        let pole1r = -pole1;
-        let pole2r = -pole2;
+        let pole1r = -pole_0;
+        let pole2r = -pole_1;
 
         let distances = calculate_intersection_point_distances(
-            &b1, &pole1r, length1, &b2, &pole2r, length2, &centriod,
+            &b1,
+            &pole1r,
+            arc_length_0,
+            &b2,
+            &pole2r,
+            arc_length_1,
+            &centriod,
         );
 
         assert!(is_within_tolerance(
@@ -437,6 +458,6 @@ mod tests {
             distances.0.0,
             f64::EPSILON
         ));
-        assert_eq!(length2.0, distances.1.0);
+        assert_eq!(arc_length_1.0, distances.1.0);
     }
 }

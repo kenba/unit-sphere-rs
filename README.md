@@ -81,10 +81,10 @@ let washington = LatLong::new(Degrees(39.0), Degrees(-77.0));
 let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
 let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
 
-let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
-let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+let arc_0 = Arc::try_from((&istanbul, &washington)).unwrap();
+let arc_1 = Arc::try_from((&reyjavik, &accra)).unwrap();
 
-let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+let intersection_point = calculate_intersection_point(&arc_0, &arc_1).unwrap();
 let lat_long = LatLong::from(&intersection_point);
 // Geodesic intersection latitude is 54.7170296089477
 assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));

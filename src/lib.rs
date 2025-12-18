@@ -98,10 +98,10 @@
 //! let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
 //! let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
 //!
-//! let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
-//! let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+//! let arc_0 = Arc::try_from((&istanbul, &washington)).unwrap();
+//! let arc_1 = Arc::try_from((&reyjavik, &accra)).unwrap();
 //!
-//! let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+//! let intersection_point = calculate_intersection_point(&arc_0, &arc_1).unwrap();
 //! let lat_long = LatLong::from(&intersection_point);
 //! // Geodesic intersection latitude is 54.7170296089477
 //! assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
@@ -534,26 +534,26 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
 /// closest intersection point or their coincident arc distances if the
 /// `Arc`s are on coincident Great Circles.
 ///
-/// * `arc1`, `arc2` the `Arc`s.
+/// * `arc_0`, `arc_1` the `Arc`s.
 ///
 /// returns the distances along the first `Arc` and second `Arc` to the intersection
 /// point or to their coincident arc distances if the `Arc`s do not intersect.
 #[must_use]
-pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Radians) {
+pub fn calculate_intersection_distances(arc_0: &Arc, arc_1: &Arc) -> (Radians, Radians) {
     vector::intersection::calculate_intersection_point_distances(
-        &arc1.a,
-        &arc1.pole,
-        arc1.length(),
-        &arc2.a,
-        &arc2.pole,
-        arc2.length(),
-        &(0.5 * (arc1.mid_point() + arc2.mid_point())),
+        &arc_0.a,
+        &arc_0.pole,
+        arc_0.length(),
+        &arc_1.a,
+        &arc_1.pole,
+        arc_1.length(),
+        &(0.5 * (arc_0.mid_point() + arc_1.mid_point())),
     )
 }
 
 /// Calculate whether a pair of `Arc`s intersect and (if so) where.
 ///
-/// * `arc1`, `arc2` the `Arc`s.
+/// * `arc_0`, `arc_1` the `Arc`s.
 ///
 /// returns the distance along the first `Arc` to the second `Arc` or None if they
 /// don't intersect.
@@ -568,11 +568,11 @@ pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Rad
 /// let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
 /// let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
 ///
-/// let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
-/// let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+/// let arc_0 = Arc::try_from((&istanbul, &washington)).unwrap();
+/// let arc_1 = Arc::try_from((&reyjavik, &accra)).unwrap();
 ///
 /// // Calculate the intersection point position
-/// let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+/// let intersection_point = calculate_intersection_point(&arc_0, &arc_1).unwrap();
 /// let lat_long = LatLong::from(&intersection_point);
 ///
 /// // The expected latitude and longitude are from:
@@ -584,14 +584,18 @@ pub fn calculate_intersection_distances(arc1: &Arc, arc2: &Arc) -> (Radians, Rad
 /// assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
 /// ```
 #[must_use]
-pub fn calculate_intersection_point(arc1: &Arc, arc2: &Arc) -> Option<Vector3d> {
-    let (distance1, distance2) = calculate_intersection_distances(arc1, arc2);
+pub fn calculate_intersection_point(arc_0: &Arc, arc_1: &Arc) -> Option<Vector3d> {
+    let (distance1, distance2) = calculate_intersection_distances(arc_0, arc_1);
 
     // Determine whether both distances are within both arcs
-    if vector::intersection::is_alongside(distance1, arc1.length(), Radians(4.0 * f64::EPSILON))
-        && vector::intersection::is_alongside(distance2, arc2.length(), Radians(4.0 * f64::EPSILON))
+    if vector::intersection::is_alongside(distance1, arc_0.length(), Radians(4.0 * f64::EPSILON))
+        && vector::intersection::is_alongside(
+            distance2,
+            arc_1.length(),
+            Radians(4.0 * f64::EPSILON),
+        )
     {
-        Some(arc1.position(distance1.clamp(arc1.length())))
+        Some(arc_0.position(distance1.clamp(arc_0.length())))
     } else {
         None
     }
@@ -948,10 +952,10 @@ mod tests {
         let reyjavik = LatLong::new(Degrees(64.0), Degrees(-22.0));
         let accra = LatLong::new(Degrees(6.0), Degrees(0.0));
 
-        let arc1 = Arc::try_from((&istanbul, &washington)).unwrap();
-        let arc2 = Arc::try_from((&reyjavik, &accra)).unwrap();
+        let arc_0 = Arc::try_from((&istanbul, &washington)).unwrap();
+        let arc_1 = Arc::try_from((&reyjavik, &accra)).unwrap();
 
-        let intersection_point = calculate_intersection_point(&arc1, &arc2).unwrap();
+        let intersection_point = calculate_intersection_point(&arc_0, &arc_1).unwrap();
         let lat_long = LatLong::from(&intersection_point);
         // Geodesic intersection latitude is 54.7170296089477
         assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
@@ -959,7 +963,7 @@ mod tests {
         assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
 
         // Switch arcs
-        let intersection_point = calculate_intersection_point(&arc2, &arc1).unwrap();
+        let intersection_point = calculate_intersection_point(&arc_1, &arc_0).unwrap();
         let lat_long = LatLong::from(&intersection_point);
         // Geodesic intersection latitude is 54.7170296089477
         assert!(is_within_tolerance(54.72, lat_long.lat().0, 0.05));
@@ -972,19 +976,19 @@ mod tests {
         let south_pole_1 = LatLong::new(Degrees(-88.0), Degrees(-180.0));
         let south_pole_2 = LatLong::new(Degrees(-87.0), Degrees(0.0));
 
-        let arc1 = Arc::try_from((&south_pole_1, &south_pole_2)).unwrap();
+        let arc_0 = Arc::try_from((&south_pole_1, &south_pole_2)).unwrap();
 
-        let intersection_lengths = calculate_intersection_distances(&arc1, &arc1);
+        let intersection_lengths = calculate_intersection_distances(&arc_0, &arc_0);
         assert_eq!(Radians(0.0), intersection_lengths.0);
         assert_eq!(Radians(0.0), intersection_lengths.1);
 
-        let intersection_point = calculate_intersection_point(&arc1, &arc1).unwrap();
-        assert_eq!(0.0, vector::sq_distance(&arc1.a(), &intersection_point));
+        let intersection_point = calculate_intersection_point(&arc_0, &arc_0).unwrap();
+        assert_eq!(0.0, vector::sq_distance(&arc_0.a(), &intersection_point));
 
         let south_pole_3 = LatLong::new(Degrees(-85.0), Degrees(0.0));
         let south_pole_4 = LatLong::new(Degrees(-86.0), Degrees(0.0));
-        let arc2 = Arc::try_from((&south_pole_3, &south_pole_4)).unwrap();
-        let intersection_point = calculate_intersection_point(&arc1, &arc2);
+        let arc_1 = Arc::try_from((&south_pole_3, &south_pole_4)).unwrap();
+        let intersection_point = calculate_intersection_point(&arc_0, &arc_1);
         assert!(intersection_point.is_none());
     }
 }
