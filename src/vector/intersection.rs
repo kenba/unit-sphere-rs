@@ -44,9 +44,10 @@
 //! along the `Arc`s to the intersection point.
 
 use super::{
-    MIN_SQ_DISTANCE, MIN_SQ_NORM, Vector3d, calculate_great_circle_atd, normalise, sq_distance,
+    MIN_SQ_DISTANCE, MIN_SQ_NORM, Vector3d, calculate_great_circle_atd, normalise,
+    normalise_centroid, sq_distance,
 };
-use angle_sc::{Radians, max};
+use angle_sc::{Angle, Radians, max};
 
 /// Calculate an intersection point between the poles of two Great Circles.
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>
@@ -243,8 +244,83 @@ pub fn calculate_intersection_point_distances(
     }
 }
 
+/// Determine the reference point of a pair of arcs.
+/// I.e. the closest intersection point if they intersect or the
+/// centroid normalized to lie on the unit sphere if they don't.
+///
+/// * `mid_point_0`, `mid_point_1` the mid points of the `Arc`s.
+/// * `pole_0`, `pole_1` the poles of the `Arc` great circles.
+///
+/// returns the closest intersection point or normalized centroid and the
+/// sine of the angle between the arcs, zero if the arcs are coincident.
+/// And the absolute relative angle at the intersection point or centroid.
+#[must_use]
+pub fn calculate_reference_point_and_angle(
+    mid_point_0: &Vector3d,
+    pole_0: &Vector3d,
+    mid_point_1: &Vector3d,
+    pole_1: &Vector3d,
+) -> (Vector3d, Angle) {
+    // calculate the intersection point between the great circles
+    let centroid = mid_point_0 + mid_point_1;
+    let point = pole_0.cross(pole_1);
+    normalise(&point, MIN_SQ_NORM).map_or_else(
+        || {
+            // the great circles are coincident
+
+            let c = normalise_centroid(&centroid, mid_point_0, pole_0);
+
+            // determine whether the great cicles oppose each other
+            let angle = if pole_0.dot(pole_1).is_sign_negative() {
+                Angle::default().opposite()
+            } else {
+                Angle::default()
+            };
+
+            (c, angle)
+        },
+        |p| {
+            // find the closest intersection point to both the arcs
+            let x = if use_antipodal_point(&p, &centroid) {
+                -p
+            } else {
+                p
+            };
+
+            (x, Angle::from_y_x(point.norm(), pole_0.dot(pole_1)))
+        },
+    )
+}
+
+/// Calculate signed great circle distances from two arc mid points to their
+/// closest intersection point or normalized centroid if the arcs are on coincident
+/// great circles.
+///
+/// * `mid_point_0`, `mid_point_1` the mid points of the arcs.
+/// * `pole_0`, `pole_1` the poles of the arc great circles.
+///
+/// returns the signed great circle distances of the closest intersection
+/// point or centroid  from the arc mid points in `Radians`,
+/// and the relative angle between the arc great circles.
+#[must_use]
+pub fn calculate_arc_reference_distances_and_angle(
+    mid_point_0: &Vector3d,
+    pole_0: &Vector3d,
+    mid_point_1: &Vector3d,
+    pole_1: &Vector3d,
+) -> (Radians, Radians, Angle) {
+    let (point, angle) =
+        calculate_reference_point_and_angle(mid_point_0, pole_0, mid_point_1, pole_1);
+    let distance_0 = calculate_great_circle_atd(mid_point_0, pole_0, &point);
+    let distance_1 = calculate_great_circle_atd(mid_point_1, pole_1, &point);
+
+    (distance_0, distance_1, angle)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::f64;
+
     use super::*;
     use crate::{LatLong, great_circle, vector};
     use angle_sc::{Angle, Degrees, is_within_tolerance};
@@ -459,5 +535,107 @@ mod tests {
             f64::EPSILON
         ));
         assert_eq!(arc_length_1.0, distances.1.0);
+    }
+
+    #[test]
+    fn test_calculate_arc_reference_distances_and_angle_coincident_great_circles() {
+        let point_1 = Vector3d::new(1.0, 0.0, 0.0);
+        let pole_1 = Vector3d::new(0.0, 0.0, 1.0);
+
+        // same mid points and great circles
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_1, &pole_1);
+        assert_eq!(Radians(0.0), result.0);
+        assert_eq!(Radians(0.0), result.1);
+        assert_eq!(Degrees(0.0), Degrees::from(result.2));
+
+        // opposite mid points and same great circles
+        let point_m1 = -point_1;
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_m1, &pole_1);
+        assert!(is_within_tolerance(
+            -f64::consts::FRAC_PI_2,
+            result.0.0,
+            f64::EPSILON
+        ));
+        assert!(is_within_tolerance(
+            f64::consts::FRAC_PI_2,
+            result.1.0,
+            f64::EPSILON
+        ));
+        assert_eq!(Degrees(0.0), Degrees::from(result.2));
+
+        // opposite mid points and great circles
+        let pole_m1 = -pole_1;
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_m1, &pole_m1);
+        assert!(is_within_tolerance(
+            -f64::consts::FRAC_PI_2,
+            result.0.0,
+            f64::EPSILON
+        ));
+        assert!(is_within_tolerance(
+            -f64::consts::FRAC_PI_2,
+            result.1.0,
+            f64::EPSILON
+        ));
+        assert_eq!(Degrees(180.0), Degrees::from(result.2));
+    }
+
+    #[test]
+    fn test_calculate_arc_reference_distances_and_angle_intersecting_great_circles() {
+        let point_1 = Vector3d::new(1.0, 0.0, 0.0);
+        let pole_1 = Vector3d::new(0.0, 0.0, 1.0);
+        let pole_2 = Vector3d::new(0.0, 1.0, 0.0);
+
+        // intersection, same mid points
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_1, &pole_2);
+        assert_eq!(Radians(0.0), result.0);
+        assert_eq!(Radians(0.0), result.1);
+        assert_eq!(Degrees(90.0), Degrees::from(result.2));
+
+        // intersection, same mid points, acute angle
+        let pole_3 = (pole_1 + pole_2).normalize();
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_1, &pole_3);
+        assert_eq!(Radians(0.0), result.0);
+        assert_eq!(Radians(0.0), result.1);
+        assert_eq!(Degrees(45.0), Degrees::from(result.2));
+
+        // intersection, same mid points, obtuse angle
+        let pole_m3 = -pole_3;
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_1, &pole_m3);
+        assert_eq!(Radians(0.0), result.0);
+        assert_eq!(Radians(0.0), result.1);
+        assert_eq!(Degrees(135.0), Degrees::from(result.2));
+
+        // intersection, different mid points, acute angle
+        let point_2 = vector::position(
+            &point_1,
+            &vector::direction(&point_1, &pole_3),
+            Angle::default().quarter_turn_cw(),
+        );
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_2, &pole_3);
+        assert_eq!(Radians(0.0), result.0);
+        assert!(is_within_tolerance(
+            -f64::consts::FRAC_PI_2,
+            result.1.0,
+            f64::EPSILON
+        ));
+        assert_eq!(Degrees(45.0), Degrees::from(result.2));
+
+        // intersection, different mid points, obtuse angle
+        let result =
+            calculate_arc_reference_distances_and_angle(&point_1, &pole_1, &point_2, &pole_m3);
+        assert_eq!(Radians(0.0), result.0);
+        assert!(is_within_tolerance(
+            f64::consts::FRAC_PI_2,
+            result.1.0,
+            f64::EPSILON
+        ));
+        assert_eq!(Degrees(135.0), Degrees::from(result.2));
     }
 }

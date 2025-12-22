@@ -472,6 +472,30 @@ pub fn calculate_atd_and_xtd(a: &Vector3d, pole: &Vector3d, p: &Vector3d) -> (Ra
     (atd, xtd)
 }
 
+/// Normalise a centroid on coincident great circles.
+///
+/// Note: it handles the case where the centroid is too small to normalise.
+///
+/// * `centroid` - the centroid to be normalised.
+/// * `point` - a mid-point.
+/// * `pole` - the pole of the Great Circle arc.
+///
+/// returns the normalise centroid.
+#[must_use]
+pub fn normalise_centroid(centroid: &Vector3d, point: &Vector3d, pole: &Vector3d) -> Vector3d {
+    normalise(centroid, MIN_SQ_NORM).unwrap_or_else(|| {
+        // centroid is half way between points
+
+        // calculate a point on the coincident great circle
+        // half way between points, closer to the start of the arc
+        position(
+            point,
+            &direction(point, pole),
+            Angle::default().quarter_turn_ccw(),
+        )
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -832,5 +856,26 @@ mod tests {
             xtd.0,
             0.000001
         ));
+    }
+
+    #[test]
+    fn test_normalise_centroid() {
+        let point_0 = Vector3d::new(0.0, 0.0, 0.0);
+        let point_1 = Vector3d::new(1.0, 0.0, 0.0);
+        let point_m1 = -point_1;
+        let pole_1 = Vector3d::new(0.0, 0.0, 1.0);
+
+        // normalised centroid from point_1
+        let result = normalise_centroid(&point_0, &point_1, &pole_1);
+        assert_eq!(Vector3d::new(0.0, -1.0, 0.0), result);
+
+        // normalised centroid from point_1 antoipodal point
+        let result = normalise_centroid(&point_0, &point_m1, &pole_1);
+        assert_eq!(Vector3d::new(0.0, 1.0, 0.0), result);
+
+        // normalised centroid from point_1 centroid
+        let point_2 = point_1 + point_1;
+        let result = normalise_centroid(&point_2, &point_1, &pole_1);
+        assert_eq!(point_1, result);
     }
 }
