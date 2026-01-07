@@ -34,12 +34,12 @@
 //! are coincident, in which case they effectively *intersect* everywhere.
 //!
 //! If a pair of `Arc`s are on coincident great circles,
-//! `calculate_coincident_arc_distances` calculates the distances between
-//! `Arc` ends, zero if the `Arc`s overlap.
+//! the mormalized centroid of the arc midpoints is used instead of the
+//! intersection point.
 //!
-//! Otherwise `use_antipodal_point` determines which intersection point
-//! is closer to the [centroid](https://en.wikipedia.org/wiki/Centroid)
-//! of the `Arc`s midpoints.
+//! Otherwise `closest_intersection_point` calls `use_antipodal_point`to determine
+//! which intersection point is closer to the
+//! [centroid](https://en.wikipedia.org/wiki/Centroid) of the `Arc`s midpoints.
 
 use super::{
     MIN_SQ_NORM, Vector3d, calculate_great_circle_atd, normalise, normalise_centroid, sq_distance,
