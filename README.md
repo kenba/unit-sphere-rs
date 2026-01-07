@@ -12,12 +12,11 @@ The library uses a combination of spherical trigonometry and vector geometry
 to perform [great-circle navigation](https://en.wikipedia.org/wiki/Great-circle_navigation)
 on the surface of a unit sphere, see *Figure 1*.
 
-![great circle arc](https://via-technology.aero/img/navigation/sphere/great_circle_arc.svg)
-
+![great circle arc](https://via-technology.aero/img/navigation/sphere/great_circle_arc.svg)\
 *Figure 1 A Great Circle Arc*
 
 A [great circle](https://en.wikipedia.org/wiki/Great_circle) is the
-shortest path between positions on the surface of a sphere.
+shortest path between positions on the surface of a sphere.\
 It is the spherical equivalent of a straight line in planar geometry.
 
 ## Spherical trigonometry
@@ -36,11 +35,10 @@ The resulting distance in `Radians` can be converted to the required units by mu
 ## Vector geometry
 
 Points on the surface of a sphere and great circle poles may be represented
-by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).
-Many calculations are simpler using vectors than spherical trigonometry.
+by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).\
+Many calculations are simpler and quicker using vectors than spherical trigonometry.
 
-![Spherical Vector Coordinates](https://via-technology.aero/img/navigation/sphere/ecef_coordinates.svg)
-
+![Spherical Vector Coordinates](https://via-technology.aero/img/navigation/sphere/ecef_coordinates.svg)\
 *Figure 2 Spherical Vector Coordinates*
 
 For example, the across track distance of a point from a great circle can
@@ -59,8 +57,7 @@ See: [spherical vector geometry](https://via-technology.aero/navigation/spherica
 The software uses types: `Angle`, `Degrees` and `Radians` from the
 [angle-sc](https://crates.io/crates/angle-sc) crate.
 
-![Sphere Class Diagram](docs/images/sphere_class_diagram.svg)
-
+![Sphere Class Diagram](docs/images/sphere_class_diagram.svg)\
 *Figure 3 Class Diagram*
 
 The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)

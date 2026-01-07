@@ -32,8 +32,7 @@
 //! to perform [great-circle navigation](https://en.wikipedia.org/wiki/Great-circle_navigation)
 //! on the surface of a unit sphere, see *Figure 1*.
 //!
-//! ![great circle arc](https://via-technology.aero/img/navigation/sphere/great_circle_arc.svg)
-//!
+//! ![great circle arc](https://via-technology.aero/img/navigation/sphere/great_circle_arc.svg)\
 //! *Figure 1 A Great Circle Arc*
 //!
 //! A [great circle](https://en.wikipedia.org/wiki/Great_circle) is the
@@ -57,11 +56,10 @@
 //! ## Vector geometry
 //!
 //! Points on the surface of a sphere and great circle poles may be represented
-//! by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).
-//! Many calculations are simpler using vectors than spherical trigonometry.
+//! by 3D [vectors](https://www.movable-type.co.uk/scripts/latlong-vectors.html).\
+//! Many calculations are simpler and quicker using vectors than spherical trigonometry.
 //!
-//! ![Spherical Vector Coordinates](https://via-technology.aero/img/navigation/sphere/ecef_coordinates.svg)
-//!
+//! ![Spherical Vector Coordinates](https://via-technology.aero/img/navigation/sphere/ecef_coordinates.svg)\
 //! *Figure 2 Spherical Vector Coordinates*
 //!
 //! For example, the across track distance of a point from a great circle can
