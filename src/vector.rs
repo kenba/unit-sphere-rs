@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2025 Ken Barker
+// Copyright (c) 2024-2026 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -531,6 +531,8 @@ mod tests {
         // Test South pole
         let lat_lon_south = LatLong::new(Degrees(-90.0), Degrees(180.0));
         let point_south = Vector3d::from(&lat_lon_south);
+        assert!(is_unit(&point_south));
+        assert_eq!(Vector3d::new(0.0, 0.0, -1.0), point_south);
 
         assert_eq!(Degrees(-90.0), Degrees::from(latitude(&point_south)));
         assert_eq!(Degrees(0.0), Degrees::from(longitude(&point_south)));
@@ -544,12 +546,14 @@ mod tests {
         let lat_lon_0_0 = LatLong::new(Degrees(0.0), Degrees(0.0));
         let point_0 = Vector3d::from(&lat_lon_0_0);
         assert!(is_unit(&point_0));
+        assert_eq!(Vector3d::new(1.0, 0.0, 0.0), point_0);
         assert_eq!(lat_lon_0_0, LatLong::from(&point_0));
 
-        // Test IDL equator
+        // Test antimeridian equator
         let lat_lon_0_180 = LatLong::new(Degrees(0.0), Degrees(180.0));
         let point_1 = Vector3d::from(&lat_lon_0_180);
         assert!(is_unit(&point_1));
+        assert_eq!(Vector3d::new(-1.0, 0.0, 0.0), point_1);
         assert_eq!(false, is_west_of(&point_0, &point_1));
         assert_eq!(
             Radians(core::f64::consts::PI),
@@ -559,6 +563,7 @@ mod tests {
         let lat_lon_0_m180 = LatLong::new(Degrees(0.0), Degrees(-180.0));
         let point_2 = Vector3d::from(&lat_lon_0_m180);
         assert!(is_unit(&point_2));
+        assert_eq!(Vector3d::new(-1.0, 0.0, 0.0), point_2);
         // Converts back to +ve longitude
         assert_eq!(lat_lon_0_180, LatLong::from(&point_2));
 

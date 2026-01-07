@@ -1,4 +1,4 @@
-// Copyright (c) 2024-2025 Ken Barker
+// Copyright (c) 2024-2026 Ken Barker
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"),
@@ -474,7 +474,10 @@ impl Arc {
     #[must_use]
     pub fn shortest_distance(&self, point: &Vector3d) -> Radians {
         let (atd, xtd) = self.calculate_atd_and_xtd(point);
-        if vector::intersection::is_alongside(atd, self.length, Radians(4.0 * f64::EPSILON)) {
+        if (-great_circle::MIN_VALUE <= atd.0)
+            && (atd.0 <= self.length.0 + 2.0 * great_circle::MIN_VALUE)
+        {
+            // point is alongside the arc
             xtd.abs()
         } else {
             // adjust atd to measure the distance from the centre of the Arc to the point
@@ -540,14 +543,16 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
 /// point or to their coincident arc distances if the `Arc`s do not intersect.
 #[must_use]
 pub fn calculate_intersection_distances(arc_0: &Arc, arc_1: &Arc) -> (Radians, Radians) {
-    vector::intersection::calculate_intersection_point_distances(
-        &arc_0.a,
-        &arc_0.pole,
-        arc_0.length(),
-        &arc_1.a,
-        &arc_1.pole,
-        arc_1.length(),
-        &(0.5 * (arc_0.mid_point() + arc_1.mid_point())),
+    let (distance_0, distance_1, _angle) =
+        vector::intersection::calculate_arc_reference_distances_and_angle(
+            &arc_0.mid_point(),
+            &arc_0.pole(),
+            &arc_1.mid_point(),
+            &arc_1.pole(),
+        );
+    (
+        distance_0 + arc_0.length().half(),
+        distance_1 + arc_1.length().half(),
     )
 }
 
@@ -585,17 +590,30 @@ pub fn calculate_intersection_distances(arc_0: &Arc, arc_1: &Arc) -> (Radians, R
 /// ```
 #[must_use]
 pub fn calculate_intersection_point(arc_0: &Arc, arc_1: &Arc) -> Option<Vector3d> {
-    let (distance1, distance2) = calculate_intersection_distances(arc_0, arc_1);
+    let (point, angle) = vector::intersection::calculate_reference_point_and_angle(
+        &arc_0.mid_point(),
+        &arc_0.pole(),
+        &arc_1.mid_point(),
+        &arc_1.pole(),
+    );
 
-    // Determine whether both distances are within both arcs
-    if vector::intersection::is_alongside(distance1, arc_0.length(), Radians(4.0 * f64::EPSILON))
-        && vector::intersection::is_alongside(
-            distance2,
-            arc_1.length(),
-            Radians(4.0 * f64::EPSILON),
-        )
-    {
-        Some(arc_0.position(distance1.clamp(arc_0.length())))
+    // calculate distances to the intersection or centroid from arc mid points
+    let distance_0 = vector::calculate_great_circle_atd(&arc_0.mid_point(), &arc_0.pole(), &point);
+    let distance_1 = vector::calculate_great_circle_atd(&arc_1.mid_point(), &arc_1.pole(), &point);
+
+    let arcs_are_coincident = angle.sin().0 == 0.0;
+    let arcs_intersect_or_overlap = if arcs_are_coincident {
+        // do coincident arcs overlap?
+        distance_0.abs() + distance_1.abs()
+            <= arc_0.length().half() + arc_1.length().half() + Radians(great_circle::MIN_VALUE)
+    } else {
+        // do great circles intersect inside both arcs
+        (distance_0.abs() <= arc_0.length().half() + Radians(great_circle::MIN_VALUE))
+            && distance_1.abs() <= (arc_1.length().half() + Radians(great_circle::MIN_VALUE))
+    };
+
+    if arcs_intersect_or_overlap {
+        Some(point)
     } else {
         None
     }
@@ -979,11 +997,15 @@ mod tests {
         let arc_0 = Arc::try_from((&south_pole_1, &south_pole_2)).unwrap();
 
         let intersection_lengths = calculate_intersection_distances(&arc_0, &arc_0);
-        assert_eq!(Radians(0.0), intersection_lengths.0);
-        assert_eq!(Radians(0.0), intersection_lengths.1);
+        assert_eq!(arc_0.length().half(), intersection_lengths.0);
+        assert_eq!(arc_0.length().half(), intersection_lengths.1);
 
         let intersection_point = calculate_intersection_point(&arc_0, &arc_0).unwrap();
-        assert_eq!(0.0, vector::sq_distance(&arc_0.a(), &intersection_point));
+        assert!(is_within_tolerance(
+            arc_0.length().half().0,
+            great_circle::e2gc_distance(vector::distance(&arc_0.a(), &intersection_point)).0,
+            f64::EPSILON
+        ));
 
         let south_pole_3 = LatLong::new(Degrees(-85.0), Degrees(0.0));
         let south_pole_4 = LatLong::new(Degrees(-86.0), Degrees(0.0));
