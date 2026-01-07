@@ -81,6 +81,7 @@ pub fn use_antipodal_point(point: &Vector3d, centroid: &Vector3d) -> bool {
 ///
 /// returns the antipodal point if it is closer to the `centroid`,
 /// otherwise returns the point.
+#[must_use]
 pub fn closest_intersection_point(point: &Vector3d, centroid: &Vector3d) -> Vector3d {
     if use_antipodal_point(point, centroid) {
         -*point
