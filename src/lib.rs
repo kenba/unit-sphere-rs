@@ -547,6 +547,7 @@ pub fn calculate_intersection_distances(arc_0: &Arc, arc_1: &Arc) -> (Radians, R
             &arc_0.pole(),
             &arc_1.mid_point(),
             &arc_1.pole(),
+            vector::MIN_SQ_NORM,
         );
     (
         distance_0 + arc_0.length().half(),
@@ -593,6 +594,7 @@ pub fn calculate_intersection_point(arc_0: &Arc, arc_1: &Arc) -> Option<Vector3d
         &arc_0.pole(),
         &arc_1.mid_point(),
         &arc_1.pole(),
+        vector::MIN_SQ_NORM,
     );
 
     // calculate distances to the intersection or centroid from arc mid points
