@@ -14,7 +14,7 @@ edition = "2024"
 
 [dependencies]
 angle-sc = "1.1"
-nalgebra = "0.34"
+nalgebra = "0.35"
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 thiserror = "2.0"
 
