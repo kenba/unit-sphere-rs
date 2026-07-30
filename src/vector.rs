@@ -488,7 +488,7 @@ where
     T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
     f64: From<T>,
 {
-    let min_angle_multiple = if f64::from(T::epsilon()) < f64::epsilon() {
+    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
         MIN_SIN_MULTIPLE_F32
     } else {
         MIN_SIN_MULTIPLE
@@ -524,7 +524,7 @@ where
     let min_distance = T::epsilon() + T::epsilon();
     let min_sq_distance = min_distance * min_distance;
 
-    let min_angle_multiple = if f64::from(T::epsilon()) < f64::epsilon() {
+    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
         MIN_SIN_MULTIPLE_F32
     } else {
         MIN_SIN_MULTIPLE
@@ -571,7 +571,7 @@ where
     let min_distance = T::epsilon() + T::epsilon();
     let min_sq_distance = min_distance * min_distance;
 
-    let min_angle_multiple = if f64::from(T::epsilon()) < f64::epsilon() {
+    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
         MIN_SIN_MULTIPLE_F32
     } else {
         MIN_SIN_MULTIPLE
@@ -623,7 +623,7 @@ where
     T: Float + na::Scalar + na::ComplexField<RealField = T>,
     f64: From<T>,
 {
-    let min_angle_multiple = if f64::from(T::epsilon()) < f64::epsilon() {
+    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
         MIN_SIN_MULTIPLE_F32
     } else {
         MIN_SIN_MULTIPLE
@@ -983,6 +983,55 @@ mod tests {
     }
 
     #[test]
+    fn test_calculate_along_track_distance_and_square_f32() {
+        // Greenwich equator
+        let g_eq = Vector3::new(1.0_f32, 0.0_f32, 0.0_f32);
+
+        // 90 degrees East on the equator
+        let e_eq = Vector3::new(0.0_f32, 1.0_f32, 0.0_f32);
+
+        let pole_0 = g_eq.cross(&e_eq);
+
+        // North of Equator
+        let latitude = Degrees(1.0_f32);
+
+        for lon in -179..180 {
+            let longitude = lon as f32;
+            let latlong = LatLong::new(latitude, Degrees(longitude));
+            let point = Vector3::from(&latlong);
+
+            let expected = longitude.to_radians();
+            let atd = along_track_distance(&g_eq, &pole_0, &point);
+            // Accuracy reduces outside of this range
+            let tolerance = if (-153..154).contains(&lon) {
+                4.0 * f32::EPSILON
+            } else {
+                32.0 * f32::EPSILON
+            };
+            assert!(is_within_tolerance(expected, atd.0, tolerance));
+
+            let (atd, xtd) = calculate_atd_and_xtd(&g_eq, &pole_0, &point);
+            assert!(is_within_tolerance(expected, atd.0, tolerance));
+            assert!(is_within_tolerance(
+                1.0_f32.to_radians(),
+                xtd.0,
+                f32::EPSILON
+            ));
+
+            let expected = great_circle::gc2e_distance(Radians(expected));
+            let expected = expected * expected;
+            let atd2 = sq_along_track_distance(&g_eq, &pole_0, &point);
+            // Accuracy reduces outside of this range
+            let tolerance = if (-86..87).contains(&lon) {
+                2.0 * f32::EPSILON
+            } else {
+                8.0 * f32::EPSILON
+            };
+            assert!(is_within_tolerance(expected, atd2, tolerance));
+        }
+    }
+
+    #[test]
     fn test_special_cases() {
         // Greenwich equator
         let g_eq = Vector3::new(1.0, 0.0, 0.0);
@@ -1034,6 +1083,27 @@ mod tests {
         // normalised centroid from point_1 antoipodal point
         let result = normalise_centroid(&point_0, &point_m1, &pole_1);
         assert_eq!(Vector3::new(0.0, 1.0, 0.0), result);
+
+        // normalised centroid from point_1 centroid
+        let point_2 = point_1 + point_1;
+        let result = normalise_centroid(&point_2, &point_1, &pole_1);
+        assert_eq!(point_1, result);
+    }
+
+    #[test]
+    fn test_normalise_centroid_f32() {
+        let point_0 = Vector3::new(0.0_f32, 0.0_f32, 0.0_f32);
+        let point_1 = Vector3::new(1.0_f32, 0.0_f32, 0.0_f32);
+        let point_m1 = -point_1;
+        let pole_1 = Vector3::new(0.0_f32, 0.0_f32, 1.0_f32);
+
+        // normalised centroid from point_1
+        let result = normalise_centroid(&point_0, &point_1, &pole_1);
+        assert_eq!(Vector3::new(0.0_f32, -1.0_f32, 0.0_f32), result);
+
+        // normalised centroid from point_1 antoipodal point
+        let result = normalise_centroid(&point_0, &point_m1, &pole_1);
+        assert_eq!(Vector3::new(0.0_f32, 1.0_f32, 0.0_f32), result);
 
         // normalised centroid from point_1 centroid
         let point_2 = point_1 + point_1;
