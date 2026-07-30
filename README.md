@@ -63,6 +63,10 @@ The software uses types: `Angle`, `Degrees` and `Radians` from the
 The library is declared [no_std](https://docs.rust-embedded.org/book/intro/no-std.html)
 so it can be used in embedded applications.
 
+This version of the library uses the generic [num-traits](https://crates.io/crates/num-traits)
+`Float` type.\
+The last non-generic version is `1.0.2`, where all types are based on `f64`.
+
 ## Example
 
 The following example calculates the intersection between two Great Circle `Arc`s.
