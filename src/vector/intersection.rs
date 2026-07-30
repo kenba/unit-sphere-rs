@@ -41,8 +41,9 @@
 //! which intersection point is closer to the
 //! [centroid](https://en.wikipedia.org/wiki/Centroid) of the `Arc`s midpoints.
 
-use super::{Vector3d, calculate_great_circle_atd, normalise, normalise_centroid, sq_distance};
+use super::{Vector3, calculate_great_circle_atd, normalise, normalise_centroid, sq_distance};
 use angle_sc::{Angle, Radians};
+use num_traits::{Float, float::FloatConst};
 
 /// Calculate an intersection point between the poles of two Great Circles.
 /// See: <http://www.movable-type.co.uk/scripts/latlong-vectors.html#intersection>
@@ -51,11 +52,14 @@ use angle_sc::{Angle, Radians};
 ///
 /// return an intersection point or None if the poles represent coincident Great Circles.
 #[must_use]
-pub fn calculate_intersection(
-    pole_0: &Vector3d,
-    pole_1: &Vector3d,
-    min_sq_value: f64,
-) -> Option<Vector3d> {
+pub fn calculate_intersection<T>(
+    pole_0: &Vector3<T>,
+    pole_1: &Vector3<T>,
+    min_sq_value: T,
+) -> Option<Vector3<T>>
+where
+    T: Float + na::Scalar + na::ComplexField<RealField = T>,
+{
     normalise(&pole_0.cross(pole_1), min_sq_value)
 }
 
@@ -68,7 +72,10 @@ pub fn calculate_intersection(
 /// returns true if the antipodal intersection is closer to the `centroid`
 /// of the `Arc`s otherwise returns false.
 #[must_use]
-pub fn use_antipodal_point(point: &Vector3d, centroid: &Vector3d) -> bool {
+pub fn use_antipodal_point<T>(point: &Vector3<T>, centroid: &Vector3<T>) -> bool
+where
+    T: Float + na::Scalar + na::ComplexField<RealField = T>,
+{
     sq_distance(centroid, &(-*point)) < sq_distance(centroid, point)
 }
 
@@ -80,7 +87,10 @@ pub fn use_antipodal_point(point: &Vector3d, centroid: &Vector3d) -> bool {
 /// returns the antipodal point if it is closer to the `centroid`,
 /// otherwise returns the point.
 #[must_use]
-pub fn closest_intersection_point(point: &Vector3d, centroid: &Vector3d) -> Vector3d {
+pub fn closest_intersection_point<T>(point: &Vector3<T>, centroid: &Vector3<T>) -> Vector3<T>
+where
+    T: Float + na::Scalar + na::ComplexField<RealField = T>,
+{
     if use_antipodal_point(point, centroid) {
         -*point
     } else {
@@ -101,13 +111,17 @@ pub fn closest_intersection_point(point: &Vector3d, centroid: &Vector3d) -> Vect
 /// sine of the angle between the arcs, zero if the arcs are coincident.
 /// And the absolute relative angle at the intersection point or centroid.
 #[must_use]
-pub fn calculate_reference_point_and_angle(
-    mid_point_0: &Vector3d,
-    pole_0: &Vector3d,
-    mid_point_1: &Vector3d,
-    pole_1: &Vector3d,
-    sq_sin_max_coincident_angle: f64,
-) -> (Vector3d, Angle) {
+pub fn calculate_reference_point_and_angle<T>(
+    mid_point_0: &Vector3<T>,
+    pole_0: &Vector3<T>,
+    mid_point_1: &Vector3<T>,
+    pole_1: &Vector3<T>,
+    sq_sin_max_coincident_angle: T,
+) -> (Vector3<T>, Angle<T>)
+where
+    T: Float + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
     let centroid = mid_point_0 + mid_point_1;
     // calculate the intersection point between the great circles
     let point = pole_0.cross(pole_1);
@@ -140,13 +154,17 @@ pub fn calculate_reference_point_and_angle(
 /// point or centroid  from the arc mid points in `Radians`,
 /// and the relative angle between the arc great circles.
 #[must_use]
-pub fn calculate_arc_reference_distances_and_angle(
-    mid_point_0: &Vector3d,
-    pole_0: &Vector3d,
-    mid_point_1: &Vector3d,
-    pole_1: &Vector3d,
-    sq_sin_max_coincident_angle: f64,
-) -> (Radians, Radians, Angle) {
+pub fn calculate_arc_reference_distances_and_angle<T>(
+    mid_point_0: &Vector3<T>,
+    pole_0: &Vector3<T>,
+    mid_point_1: &Vector3<T>,
+    pole_1: &Vector3<T>,
+    sq_sin_max_coincident_angle: T,
+) -> (Radians<T>, Radians<T>, Angle<T>)
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
     let (point, angle) = calculate_reference_point_and_angle(
         mid_point_0,
         pole_0,
@@ -168,33 +186,32 @@ mod tests {
     use crate::{LatLong, vector};
     use angle_sc::{Angle, Degrees, is_within_tolerance};
 
+    pub const MIN_SQ_NORM: f64 = vector::tests::MIN_SQ_NORM;
+
     #[test]
     fn test_calculate_intersection() {
         let lat_lon_south = LatLong::new(Degrees(-90.0), Degrees(0.0));
-        let south_pole = Vector3d::from(&lat_lon_south);
+        let south_pole = Vector3::from(&lat_lon_south);
 
         let lat_lon_north = LatLong::new(Degrees(90.0), Degrees(0.0));
-        let north_pole = Vector3d::from(&lat_lon_north);
+        let north_pole = Vector3::from(&lat_lon_north);
 
         let lat_lon_idl = LatLong::new(Degrees(0.0), Degrees(180.0));
-        let idl = Vector3d::from(&lat_lon_idl);
+        let idl = Vector3::from(&lat_lon_idl);
 
-        let equator_intersection =
-            calculate_intersection(&south_pole, &north_pole, vector::MIN_SQ_NORM);
+        let equator_intersection = calculate_intersection(&south_pole, &north_pole, MIN_SQ_NORM);
         assert!(equator_intersection.is_none());
 
-        let gc_intersection1 =
-            calculate_intersection(&idl, &north_pole, vector::MIN_SQ_NORM).unwrap();
-        let gc_intersection2 =
-            calculate_intersection(&idl, &south_pole, vector::MIN_SQ_NORM).unwrap();
+        let gc_intersection1 = calculate_intersection(&idl, &north_pole, MIN_SQ_NORM).unwrap();
+        let gc_intersection2 = calculate_intersection(&idl, &south_pole, MIN_SQ_NORM).unwrap();
 
         assert_eq!(gc_intersection1, -gc_intersection2);
     }
 
     #[test]
     fn test_calculate_arc_reference_distances_and_angle_coincident_great_circles() {
-        let point_1 = Vector3d::new(1.0, 0.0, 0.0);
-        let pole_1 = Vector3d::new(0.0, 0.0, 1.0);
+        let point_1 = Vector3::new(1.0, 0.0, 0.0);
+        let pole_1 = Vector3::new(0.0, 0.0, 1.0);
 
         // same mid points and great circles
         let result = calculate_arc_reference_distances_and_angle(
@@ -202,7 +219,7 @@ mod tests {
             &pole_1,
             &point_1,
             &pole_1,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert_eq!(Radians(0.0), result.0);
         assert_eq!(Radians(0.0), result.1);
@@ -215,7 +232,7 @@ mod tests {
             &pole_1,
             &point_m1,
             &pole_1,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert!(is_within_tolerance(
             -f64::consts::FRAC_PI_2,
@@ -236,7 +253,7 @@ mod tests {
             &pole_1,
             &point_m1,
             &pole_m1,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert!(is_within_tolerance(
             -f64::consts::FRAC_PI_2,
@@ -253,9 +270,9 @@ mod tests {
 
     #[test]
     fn test_calculate_arc_reference_distances_and_angle_intersecting_great_circles() {
-        let point_1 = Vector3d::new(1.0, 0.0, 0.0);
-        let pole_1 = Vector3d::new(0.0, 0.0, 1.0);
-        let pole_2 = Vector3d::new(0.0, 1.0, 0.0);
+        let point_1 = Vector3::new(1.0, 0.0, 0.0);
+        let pole_1 = Vector3::new(0.0, 0.0, 1.0);
+        let pole_2 = Vector3::new(0.0, 1.0, 0.0);
 
         // intersection, same mid points
         let result = calculate_arc_reference_distances_and_angle(
@@ -263,7 +280,7 @@ mod tests {
             &pole_1,
             &point_1,
             &pole_2,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert_eq!(Radians(0.0), result.0);
         assert_eq!(Radians(0.0), result.1);
@@ -276,7 +293,7 @@ mod tests {
             &pole_1,
             &point_1,
             &pole_3,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert_eq!(Radians(0.0), result.0);
         assert_eq!(Radians(0.0), result.1);
@@ -289,7 +306,7 @@ mod tests {
             &pole_1,
             &point_1,
             &pole_m3,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert_eq!(Radians(0.0), result.0);
         assert_eq!(Radians(0.0), result.1);
@@ -306,7 +323,7 @@ mod tests {
             &pole_1,
             &point_2,
             &pole_3,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert_eq!(Radians(0.0), result.0);
         assert!(is_within_tolerance(
@@ -322,7 +339,7 @@ mod tests {
             &pole_1,
             &point_2,
             &pole_m3,
-            vector::MIN_SQ_NORM,
+            MIN_SQ_NORM,
         );
         assert_eq!(Radians(0.0), result.0);
         assert!(is_within_tolerance(

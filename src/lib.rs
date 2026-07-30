@@ -116,32 +116,41 @@ pub mod great_circle;
 pub mod vector;
 
 pub use angle_sc::{Angle, Degrees, Radians, Validate};
+pub use na::Vector3;
+use num_traits::{Float, float::FloatConst};
 use thiserror::Error;
+
+pub const NINETY: f64 = 90.0;
 
 /// Test whether a latitude in degrees is a valid latitude.
 ///
 /// I.e. whether it lies in the range: -90.0 <= degrees <= 90.0
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
-pub fn is_valid_latitude(degrees: f64) -> bool {
-    (-90.0..=90.0).contains(&degrees)
+pub fn is_valid_latitude<T: Float>(degrees: T) -> bool {
+    let ninety = T::from(NINETY).expect("Could not convert constant to Float");
+    (-ninety..=ninety).contains(&degrees)
 }
 
 /// Test whether a longitude in degrees is a valid longitude.
 ///
 /// I.e. whether it lies in the range: -180.0 <= degrees <= 180.0
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
-pub fn is_valid_longitude(degrees: f64) -> bool {
-    (-180.0..=180.0).contains(&degrees)
+pub fn is_valid_longitude<T: Float>(degrees: T) -> bool {
+    let one_eighty =
+        T::from(angle_sc::ONE_HUNDRED_AND_EIGHTY).expect("Could not convert constant to Float");
+    (-one_eighty..=one_eighty).contains(&degrees)
 }
 
 /// A position as a latitude and longitude pair of `Degrees`.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct LatLong {
-    lat: Degrees,
-    lon: Degrees,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LatLong<T: Float> {
+    lat: Degrees<T>,
+    lon: Degrees<T>,
 }
 
-impl Validate for LatLong {
+impl<T: Float> Validate for LatLong<T> {
     /// Test whether a `LatLong` is valid.
     ///
     /// I.e. whether the latitude lies in the range: -90.0 <= lat <= 90.0
@@ -151,19 +160,19 @@ impl Validate for LatLong {
     }
 }
 
-impl LatLong {
+impl<T: Float> LatLong<T> {
     #[must_use]
-    pub const fn new(lat: Degrees, lon: Degrees) -> Self {
+    pub const fn new(lat: Degrees<T>, lon: Degrees<T>) -> Self {
         Self { lat, lon }
     }
 
     #[must_use]
-    pub const fn lat(&self) -> Degrees {
+    pub const fn lat(&self) -> Degrees<T> {
         self.lat
     }
 
     #[must_use]
-    pub const fn lon(&self) -> Degrees {
+    pub const fn lon(&self) -> Degrees<T> {
         self.lon
     }
 
@@ -186,7 +195,7 @@ impl LatLong {
     /// returns true if a is West of b, false otherwise.
     #[must_use]
     pub fn is_west_of(&self, a: &Self) -> bool {
-        (a.lon() - self.lon).0 < 0.0
+        (a.lon() - self.lon).0 < T::zero()
     }
 }
 
@@ -199,19 +208,26 @@ pub enum LatLongError {
     Longitude(f64),
 }
 
-impl TryFrom<(f64, f64)> for LatLong {
+impl<T> TryFrom<(T, T)> for LatLong<T>
+where
+    T: Float,
+    f64: From<T>,
+{
     type Error = LatLongError;
 
     /// Attempt to convert a pair of f64 values in latitude, longitude order.
     ///
     /// return a valid `LatLong` or a `LatLongError`.
-    fn try_from(lat_long: (f64, f64)) -> Result<Self, Self::Error> {
+    fn try_from(lat_long: (T, T)) -> Result<Self, Self::Error> {
         if !is_valid_latitude(lat_long.0) {
-            Err(LatLongError::Latitude(lat_long.0))
+            Err(LatLongError::Latitude(f64::from(lat_long.0)))
         } else if !is_valid_longitude(lat_long.1) {
-            Err(LatLongError::Longitude(lat_long.1))
+            Err(LatLongError::Longitude(f64::from(lat_long.1)))
         } else {
-            Ok(Self::new(Degrees(lat_long.0), Degrees(lat_long.1)))
+            Ok(Self::new(
+                Degrees::<T>(lat_long.0),
+                Degrees::<T>(lat_long.1),
+            ))
         }
     }
 }
@@ -223,7 +239,11 @@ impl TryFrom<(f64, f64)> for LatLong {
 /// returns the great-circle azimuth relative to North and distance of point b
 /// from point a.
 #[must_use]
-pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radians) {
+pub fn calculate_azimuth_and_distance<T>(a: &LatLong<T>, b: &LatLong<T>) -> (Angle<T>, Radians<T>)
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     let a_lat = Angle::from(a.lat);
     let b_lat = Angle::from(b.lat);
     let delta_long = Angle::from((b.lon, a.lon));
@@ -241,7 +261,11 @@ pub fn calculate_azimuth_and_distance(a: &LatLong, b: &LatLong) -> (Angle, Radia
 ///
 /// returns the great-circle distance of point b from point a in `Radians`.
 #[must_use]
-pub fn haversine_distance(a: &LatLong, b: &LatLong) -> Radians {
+pub fn haversine_distance<T>(a: &LatLong<T>, b: &LatLong<T>) -> Radians<T>
+where
+    T: Float + FloatConst,
+    f64: From<T>,
+{
     let a_lat = Angle::from(a.lat);
     let b_lat = Angle::from(b.lat);
     let delta_lat = Angle::from((b.lat, a.lat));
@@ -249,26 +273,30 @@ pub fn haversine_distance(a: &LatLong, b: &LatLong) -> Radians {
     great_circle::calculate_haversine_distance(a_lat, b_lat, delta_long, delta_lat)
 }
 
-/// A `Vector3d` is a [nalgebra](https://crates.io/crates/nalgebra) `Vector3<f64>`.
-#[allow(clippy::module_name_repetitions)]
-pub type Vector3d = na::Vector3<f64>;
-
-impl From<&LatLong> for Vector3d {
+impl<T> From<&LatLong<T>> for Vector3<T>
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
     /// Convert a `LatLong` to a point on the unit sphere.
     ///
     /// @pre |lat| <= 90.0 degrees.
     /// * `lat` - the latitude.
     /// * `lon` - the longitude.
     ///
-    /// returns a `Vector3d` of the point on the unit sphere.
-    fn from(a: &LatLong) -> Self {
+    /// returns a `Vector3` of the point on the unit sphere.
+    fn from(a: &LatLong<T>) -> Self {
         vector::to_point(Angle::from(a.lat), Angle::from(a.lon))
     }
 }
 
-impl From<&Vector3d> for LatLong {
+impl<T> From<&Vector3<T>> for LatLong<T>
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
     /// Convert a point to a `LatLong`
-    fn from(value: &Vector3d) -> Self {
+    fn from(value: &Vector3<T>) -> Self {
         Self::new(
             Degrees::from(vector::latitude(value)),
             Degrees::from(vector::longitude(value)),
@@ -277,19 +305,22 @@ impl From<&Vector3d> for LatLong {
 }
 
 /// An `Arc` of a Great Circle on a unit sphere.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Arc {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Arc<T: Float + FloatConst> {
     /// The start point of the `Arc`.
-    a: Vector3d,
+    a: Vector3<T>,
     /// The right hand pole of the Great Circle of the `Arc`.
-    pole: Vector3d,
+    pole: Vector3<T>,
     /// The length of the `Arc`.
-    length: Radians,
+    length: Radians<T>,
     /// The half width of the `Arc`.
-    half_width: Radians,
+    half_width: Radians<T>,
 }
 
-impl Validate for Arc {
+impl<T> Validate for Arc<T>
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+{
     /// Test whether an `Arc` is valid.
     ///
     /// I.e. both a and pole are on the unit sphere and are orthogonal and
@@ -303,7 +334,11 @@ impl Validate for Arc {
     }
 }
 
-impl Arc {
+impl<T> Arc<T>
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
     /// Construct an `Arc`
     ///
     /// * `a` - the start point of the `Arc`.
@@ -311,7 +346,12 @@ impl Arc {
     /// * `length` - the length of the `Arc`.
     /// * `half_width` - the half width of the `Arc`.
     #[must_use]
-    pub const fn new(a: Vector3d, pole: Vector3d, length: Radians, half_width: Radians) -> Self {
+    pub const fn new(
+        a: Vector3<T>,
+        pole: Vector3<T>,
+        length: Radians<T>,
+        half_width: Radians<T>,
+    ) -> Self {
         Self {
             a,
             pole,
@@ -326,12 +366,12 @@ impl Arc {
     /// * `azimuth` - the azimuth at a.
     /// * `length` - the length of the `Arc`.
     #[must_use]
-    pub fn from_lat_lon_azi_length(a: &LatLong, azimuth: Angle, length: Radians) -> Self {
+    pub fn from_lat_lon_azi_length(a: &LatLong<T>, azimuth: Angle<T>, length: Radians<T>) -> Self {
         Self::new(
-            Vector3d::from(a),
+            Vector3::from(a),
             vector::calculate_pole(Angle::from(a.lat()), Angle::from(a.lon()), azimuth),
             length,
-            Radians(0.0),
+            Radians(T::zero()),
         )
     }
 
@@ -340,11 +380,13 @@ impl Arc {
     /// Note: if the points are the same or antipodal, the pole will be invalid.
     /// * `a`, `b` - the start and end positions
     #[must_use]
-    pub fn between_positions(a: &LatLong, b: &LatLong) -> Self {
+    pub fn between_positions(a: &LatLong<T>, b: &LatLong<T>) -> Self {
+        let min_value = T::epsilon() + T::epsilon();
+
         let (azimuth, length) = calculate_azimuth_and_distance(a, b);
         let a_lat = Angle::from(a.lat());
         // if a is at the North or South pole
-        if a_lat.cos().0 < great_circle::MIN_VALUE {
+        if a_lat.cos().0 < min_value {
             // use b's longitude
             Self::from_lat_lon_azi_length(&LatLong::new(a.lat(), b.lon()), azimuth, length)
         } else {
@@ -356,62 +398,62 @@ impl Arc {
     ///
     /// * `half_width` - the half width of the `Arc`.
     #[must_use]
-    pub const fn set_half_width(&mut self, half_width: Radians) -> &mut Self {
+    pub const fn set_half_width(&mut self, half_width: Radians<T>) -> &mut Self {
         self.half_width = half_width;
         self
     }
 
     /// The start point of the `Arc`.
     #[must_use]
-    pub const fn a(&self) -> Vector3d {
+    pub const fn a(&self) -> Vector3<T> {
         self.a
     }
 
     /// The right hand pole of the Great Circle at the start point of the `Arc`.
     #[must_use]
-    pub const fn pole(&self) -> Vector3d {
+    pub const fn pole(&self) -> Vector3<T> {
         self.pole
     }
 
     /// The length of the `Arc`.
     #[must_use]
-    pub const fn length(&self) -> Radians {
+    pub const fn length(&self) -> Radians<T> {
         self.length
     }
 
     /// The half width of the `Arc`.
     #[must_use]
-    pub const fn half_width(&self) -> Radians {
+    pub const fn half_width(&self) -> Radians<T> {
         self.half_width
     }
 
     /// The azimuth at the start point.
     #[must_use]
-    pub fn azimuth(&self) -> Angle {
+    pub fn azimuth(&self) -> Angle<T> {
         vector::calculate_azimuth(&self.a, &self.pole)
     }
 
     /// The direction vector of the `Arc` at the start point.
     #[must_use]
-    pub fn direction(&self) -> Vector3d {
+    pub fn direction(&self) -> Vector3<T> {
         vector::direction(&self.a, &self.pole)
     }
 
     /// A position vector at distance along the `Arc`.
     #[must_use]
-    pub fn position(&self, distance: Radians) -> Vector3d {
+    pub fn position(&self, distance: Radians<T>) -> Vector3<T> {
         vector::position(&self.a, &self.direction(), Angle::from(distance))
     }
 
     /// The end point of the `Arc`.
     #[must_use]
-    pub fn b(&self) -> Vector3d {
+    pub fn b(&self) -> Vector3<T> {
         self.position(self.length)
     }
 
     /// The mid point of the `Arc`.
     #[must_use]
-    pub fn mid_point(&self) -> Vector3d {
+    pub fn mid_point(&self) -> Vector3<T> {
         self.position(self.length.half())
     }
 
@@ -422,7 +464,7 @@ impl Arc {
     ///
     /// returns the point at perpendicular distance from point.
     #[must_use]
-    pub fn perp_position(&self, point: &Vector3d, distance: Radians) -> Vector3d {
+    pub fn perp_position(&self, point: &Vector3<T>, distance: Radians<T>) -> Vector3<T> {
         vector::position(point, &self.pole, Angle::from(distance))
     }
 
@@ -432,7 +474,7 @@ impl Arc {
     ///
     /// returns the point at angle from the `Arc` start, at `Arc` length.
     #[must_use]
-    pub fn angle_position(&self, angle: Angle) -> Vector3d {
+    pub fn angle_position(&self, angle: Angle<T>) -> Vector3<T> {
         vector::rotate_position(&self.a, &self.pole, angle, Angle::from(self.length))
     }
 
@@ -443,13 +485,20 @@ impl Arc {
     /// @return the end `Arc` at a or b.
     #[must_use]
     pub fn end_arc(&self, at_b: bool) -> Self {
+        let min_value = T::epsilon() + T::epsilon();
+
         let p = if at_b { self.b() } else { self.a };
         let pole = vector::direction(&p, &self.pole);
-        if self.half_width.0 < great_circle::MIN_VALUE {
-            Self::new(p, pole, Radians(0.0), Radians(0.0))
+        if self.half_width.0 < min_value {
+            Self::new(p, pole, Radians::default(), Radians::default())
         } else {
             let a = self.perp_position(&p, self.half_width);
-            Self::new(a, pole, self.half_width + self.half_width, Radians(0.0))
+            Self::new(
+                a,
+                pole,
+                self.half_width + self.half_width,
+                Radians::default(),
+            )
         }
     }
 
@@ -460,7 +509,7 @@ impl Arc {
     ///
     /// returns the along and across track distances of the point in Radians.
     #[must_use]
-    pub fn calculate_atd_and_xtd(&self, point: &Vector3d) -> (Radians, Radians) {
+    pub fn calculate_atd_and_xtd(&self, point: &Vector3<T>) -> (Radians<T>, Radians<T>) {
         vector::calculate_atd_and_xtd(&self.a, &self.pole(), point)
     }
 
@@ -470,11 +519,12 @@ impl Arc {
     ///
     /// returns the shortest distance of a point from the `Arc` in Radians.
     #[must_use]
-    pub fn shortest_distance(&self, point: &Vector3d) -> Radians {
+    pub fn shortest_distance(&self, point: &Vector3<T>) -> Radians<T> {
+        let min_value = T::epsilon() + T::epsilon();
+        let two = T::one() + T::one();
+
         let (atd, xtd) = self.calculate_atd_and_xtd(point);
-        if (-great_circle::MIN_VALUE <= atd.0)
-            && (atd.0 <= self.length.0 + 2.0 * great_circle::MIN_VALUE)
-        {
+        if (-min_value <= atd.0) && (atd.0 <= self.length.0 + two * min_value) {
             // point is alongside the arc
             xtd.abs()
         } else {
@@ -499,24 +549,33 @@ pub enum ArcError {
     PositionsTooFar(f64),
 }
 
-impl TryFrom<(&LatLong, &LatLong)> for Arc {
+impl<T> TryFrom<(&LatLong<T>, &LatLong<T>)> for Arc<T>
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
     type Error = ArcError;
 
     /// Construct an `Arc` from a pair of positions.
     ///
     /// * `params` - the start and end positions
-    fn try_from(params: (&LatLong, &LatLong)) -> Result<Self, Self::Error> {
+    #[allow(clippy::missing_panics_doc)]
+    fn try_from(params: (&LatLong<T>, &LatLong<T>)) -> Result<Self, Self::Error> {
+        let min_angle_multiple = T::from(16384).expect("Could not convert constant to Float");
+        let min_sin_angle = min_angle_multiple * T::epsilon();
+        let min_sq_norm = min_sin_angle * min_sin_angle;
+
         // Convert positions to vectors
-        let a = Vector3d::from(params.0);
-        let b = Vector3d::from(params.1);
+        let a = Vector3::<T>::from(params.0);
+        let b = Vector3::<T>::from(params.1);
         // Calculate the great circle pole
-        vector::normalise(&a.cross(&b), vector::MIN_SQ_NORM).map_or_else(
+        vector::normalise(&a.cross(&b), min_sq_norm).map_or_else(
             || {
                 let sq_d = vector::sq_distance(&a, &b);
-                if sq_d < 1.0 {
-                    Err(ArcError::PositionsTooClose(sq_d))
+                if sq_d < T::one() {
+                    Err(ArcError::PositionsTooClose(f64::from(sq_d)))
                 } else {
-                    Err(ArcError::PositionsTooFar(sq_d))
+                    Err(ArcError::PositionsTooFar(f64::from(sq_d)))
                 }
             },
             |pole| {
@@ -524,7 +583,7 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
                     a,
                     pole,
                     great_circle::e2gc_distance(vector::distance(&a, &b)),
-                    Radians(0.0),
+                    Radians::default(),
                 ))
             },
         )
@@ -539,15 +598,27 @@ impl TryFrom<(&LatLong, &LatLong)> for Arc {
 ///
 /// returns the distances along the first `Arc` and second `Arc` to the intersection
 /// point or to their coincident arc distances if the `Arc`s do not intersect.
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
-pub fn calculate_intersection_distances(arc_0: &Arc, arc_1: &Arc) -> (Radians, Radians) {
+pub fn calculate_intersection_distances<T>(
+    arc_0: &Arc<T>,
+    arc_1: &Arc<T>,
+) -> (Radians<T>, Radians<T>)
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
+    let min_angle_multiple = T::from(16384).expect("Could not convert constant to Float");
+    let min_sin_angle = min_angle_multiple * T::epsilon();
+    let min_sq_norm = min_sin_angle * min_sin_angle;
+
     let (distance_0, distance_1, _angle) =
         vector::intersection::calculate_arc_reference_distances_and_angle(
             &arc_0.mid_point(),
             &arc_0.pole(),
             &arc_1.mid_point(),
             &arc_1.pole(),
-            vector::MIN_SQ_NORM,
+            min_sq_norm,
         );
     (
         distance_0 + arc_0.length().half(),
@@ -587,29 +658,40 @@ pub fn calculate_intersection_distances(arc_0: &Arc, arc_1: &Arc) -> (Radians, R
 /// // Geodesic intersection longitude is -14.56385574430775
 /// assert!(is_within_tolerance(-14.56, lat_long.lon().0, 0.02));
 /// ```
+#[allow(clippy::missing_panics_doc)]
 #[must_use]
-pub fn calculate_intersection_point(arc_0: &Arc, arc_1: &Arc) -> Option<Vector3d> {
+pub fn calculate_intersection_point<T>(arc_0: &Arc<T>, arc_1: &Arc<T>) -> Option<Vector3<T>>
+where
+    T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
+    f64: From<T>,
+{
+    let min_value = T::epsilon() + T::epsilon();
+
+    let min_angle_multiple = T::from(16384).expect("Could not convert constant to Float");
+    let min_sin_angle = min_angle_multiple * T::epsilon();
+    let min_sq_norm = min_sin_angle * min_sin_angle;
+
     let (point, angle) = vector::intersection::calculate_reference_point_and_angle(
         &arc_0.mid_point(),
         &arc_0.pole(),
         &arc_1.mid_point(),
         &arc_1.pole(),
-        vector::MIN_SQ_NORM,
+        min_sq_norm,
     );
 
     // calculate distances to the intersection or centroid from arc mid points
     let distance_0 = vector::calculate_great_circle_atd(&arc_0.mid_point(), &arc_0.pole(), &point);
     let distance_1 = vector::calculate_great_circle_atd(&arc_1.mid_point(), &arc_1.pole(), &point);
 
-    let arcs_are_coincident = angle.sin().0 == 0.0;
+    let arcs_are_coincident = angle.sin().0 == T::zero();
     let arcs_intersect_or_overlap = if arcs_are_coincident {
         // do coincident arcs overlap?
         distance_0.abs() + distance_1.abs()
-            <= arc_0.length().half() + arc_1.length().half() + Radians(great_circle::MIN_VALUE)
+            <= arc_0.length().half() + arc_1.length().half() + Radians(min_value)
     } else {
         // do great circles intersect inside both arcs
-        (distance_0.abs() <= arc_0.length().half() + Radians(great_circle::MIN_VALUE))
-            && distance_1.abs() <= (arc_1.length().half() + Radians(great_circle::MIN_VALUE))
+        (distance_0.abs() <= arc_0.length().half() + Radians(min_value))
+            && distance_1.abs() <= (arc_1.length().half() + Radians(min_value))
     };
 
     if arcs_intersect_or_overlap {
@@ -681,7 +763,7 @@ mod tests {
     #[test]
     fn test_vector3d_traits() {
         let a = LatLong::try_from((0.0, 90.0)).unwrap();
-        let point = Vector3d::from(&a);
+        let point = Vector3::from(&a);
 
         assert_eq!(0.0, point.x);
         assert_eq!(1.0, point.y);
@@ -770,15 +852,15 @@ mod tests {
         assert!(arc.is_valid());
         assert_eq!(Radians(0.01), arc.half_width());
 
-        assert_eq!(Vector3d::from(&g_eq), arc.a());
-        assert_eq!(Vector3d::new(0.0, 0.0, 1.0), arc.pole());
+        assert_eq!(Vector3::from(&g_eq), arc.a());
+        assert_eq!(Vector3::new(0.0, 0.0, 1.0), arc.pole());
         assert!(is_within_tolerance(
             core::f64::consts::FRAC_PI_2,
             arc.length().0,
             f64::EPSILON
         ));
         assert_eq!(Angle::from(Degrees(90.0)), arc.azimuth());
-        let b = Vector3d::from(&e_eq);
+        let b = Vector3::from(&e_eq);
         assert!(is_within_tolerance(
             0.0,
             vector::distance(&b, &arc.b()),
@@ -800,7 +882,7 @@ mod tests {
         assert_eq!(start_arc_a, arc.perp_position(&arc.a(), Radians(0.01)));
 
         let angle_90 = Angle::from(Degrees(90.0));
-        let pole_0 = Vector3d::new(0.0, 0.0, 1.0);
+        let pole_0 = Vector3::new(0.0, 0.0, 1.0);
         assert!(vector::distance(&pole_0, &arc.angle_position(angle_90)) <= f64::EPSILON);
 
         let end_arc = arc.end_arc(true);
@@ -919,11 +1001,12 @@ mod tests {
         // Test across track distance
         // Accuracy drops off outside of this range
         for lat in -83..84 {
-            let latitude = Degrees(lat as f64);
+            let lat = f64::from(lat);
+            let latitude = Degrees(lat);
             let latlong = LatLong::new(latitude, longitude);
-            let point = Vector3d::from(&latlong);
+            let point = Vector3::from(&latlong);
 
-            let expected = (lat as f64).to_radians();
+            let expected = (lat).to_radians();
             let (atd, xtd) = arc.calculate_atd_and_xtd(&point);
             assert!(is_within_tolerance(1_f64.to_radians(), atd.0, f64::EPSILON));
             assert!(is_within_tolerance(expected, xtd.0, 2.0 * f64::EPSILON));
@@ -932,16 +1015,16 @@ mod tests {
             assert!(is_within_tolerance(expected.abs(), d.0, 2.0 * f64::EPSILON));
         }
 
-        let point = Vector3d::from(&g_eq);
+        let point = Vector3::from(&g_eq);
         let d = arc.shortest_distance(&point);
         assert_eq!(0.0, d.0);
 
-        let point = Vector3d::from(&e_eq);
+        let point = Vector3::from(&e_eq);
         let d = arc.shortest_distance(&point);
         assert_eq!(0.0, d.0);
 
         let latlong = LatLong::new(Degrees(0.0), Degrees(-1.0));
-        let point = Vector3d::from(&latlong);
+        let point = Vector3::from(&latlong);
         let d = arc.shortest_distance(&point);
         assert!(is_within_tolerance(1_f64.to_radians(), d.0, f64::EPSILON));
 
@@ -951,7 +1034,7 @@ mod tests {
 
         // a point closer to the end of the arc than the start
         let latlong = LatLong::new(Degrees(0.0), Degrees(-160.0));
-        let point = Vector3d::from(&latlong);
+        let point = Vector3::from(&latlong);
         let d = arc.shortest_distance(&point);
         // shortest distance is from the end of the arc to the point
         assert_eq!(
