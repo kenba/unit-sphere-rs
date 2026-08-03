@@ -28,6 +28,7 @@ extern crate nalgebra as na;
 
 use crate::{Vector3, great_circle};
 use angle_sc::{Angle, Radians, trig};
+use core::mem::size_of;
 use num_traits::{Float, float::FloatConst};
 
 pub mod intersection;
@@ -38,6 +39,20 @@ pub const MIN_SIN_MULTIPLE: u32 = 16384;
 
 /// The minimum value of the sine of an f32 angle to normalise.
 pub const MIN_SIN_MULTIPLE_F32: u32 = 4096;
+
+/// Get the minimum value of the sine of an angle for type `T`.
+#[allow(clippy::missing_panics_doc)]
+#[must_use]
+pub fn get_min_sin_angle<T: Float>() -> T {
+    let min_angle_multiple = if size_of::<T>() < size_of::<f64>() {
+        MIN_SIN_MULTIPLE_F32
+    } else {
+        MIN_SIN_MULTIPLE
+    };
+    let min_angle_multiple =
+        T::from(min_angle_multiple).expect("Could not convert constant to Float");
+    min_angle_multiple * T::epsilon()
+}
 
 /// Convert a latitude and longitude to a point on the unit sphere.
 ///
@@ -434,7 +449,7 @@ where
 /// returns the sine of the along track distance of point relative to the start
 /// of a great circle arc.
 #[must_use]
-fn sin_atd<T>(a: &Vector3<T>, pole: &Vector3<T>, point: &Vector3<T>) -> trig::UnitNegRange<T>
+pub fn sin_atd<T>(a: &Vector3<T>, pole: &Vector3<T>, point: &Vector3<T>) -> trig::UnitNegRange<T>
 where
     T: Float + na::Scalar + na::ComplexField<RealField = T>,
 {
@@ -486,16 +501,8 @@ where
 pub fn along_track_distance<T>(a: &Vector3<T>, pole: &Vector3<T>, point: &Vector3<T>) -> Radians<T>
 where
     T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
-    f64: From<T>,
 {
-    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
-        MIN_SIN_MULTIPLE_F32
-    } else {
-        MIN_SIN_MULTIPLE
-    };
-    let min_angle_multiple =
-        T::from(min_angle_multiple).expect("Could not convert constant to Float");
-    let min_sin_angle = min_angle_multiple * T::epsilon();
+    let min_sin_angle = get_min_sin_angle::<T>();
     let min_sq_norm = min_sin_angle * min_sin_angle;
 
     let plane_point = calculate_point_on_plane(pole, point);
@@ -519,19 +526,11 @@ where
 pub fn sq_along_track_distance<T>(a: &Vector3<T>, pole: &Vector3<T>, point: &Vector3<T>) -> T
 where
     T: Float + na::Scalar + na::ComplexField<RealField = T>,
-    f64: From<T>,
 {
     let min_distance = T::epsilon() + T::epsilon();
     let min_sq_distance = min_distance * min_distance;
 
-    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
-        MIN_SIN_MULTIPLE_F32
-    } else {
-        MIN_SIN_MULTIPLE
-    };
-    let min_angle_multiple =
-        T::from(min_angle_multiple).expect("Could not convert constant to Float");
-    let min_sin_angle = min_angle_multiple * T::epsilon();
+    let min_sin_angle = get_min_sin_angle::<T>();
     let min_sq_norm = min_sin_angle * min_sin_angle;
 
     let plane_point = calculate_point_on_plane(pole, point);
@@ -566,19 +565,11 @@ pub fn calculate_atd_and_xtd<T>(
 ) -> (Radians<T>, Radians<T>)
 where
     T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
-    f64: From<T>,
 {
     let min_distance = T::epsilon() + T::epsilon();
     let min_sq_distance = min_distance * min_distance;
 
-    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
-        MIN_SIN_MULTIPLE_F32
-    } else {
-        MIN_SIN_MULTIPLE
-    };
-    let min_angle_multiple =
-        T::from(min_angle_multiple).expect("Could not convert constant to Float");
-    let min_sin_angle = min_angle_multiple * T::epsilon();
+    let min_sin_angle = get_min_sin_angle::<T>();
     let min_sq_norm = min_sin_angle * min_sin_angle;
 
     let mut atd = Radians(T::zero());
@@ -612,7 +603,6 @@ where
 /// * `pole` - the pole of the Great Circle arc.
 ///
 /// returns the normalise centroid.
-#[allow(clippy::missing_panics_doc)]
 #[must_use]
 pub fn normalise_centroid<T>(
     centroid: &Vector3<T>,
@@ -621,16 +611,8 @@ pub fn normalise_centroid<T>(
 ) -> Vector3<T>
 where
     T: Float + na::Scalar + na::ComplexField<RealField = T>,
-    f64: From<T>,
 {
-    let min_angle_multiple = if f64::from(T::epsilon()) > f64::epsilon() {
-        MIN_SIN_MULTIPLE_F32
-    } else {
-        MIN_SIN_MULTIPLE
-    };
-    let min_angle_multiple =
-        T::from(min_angle_multiple).expect("Could not convert constant to Float");
-    let min_sin_angle = min_angle_multiple * T::epsilon();
+    let min_sin_angle = get_min_sin_angle::<T>();
     let min_sq_norm = min_sin_angle * min_sin_angle;
 
     normalise(centroid, min_sq_norm).unwrap_or_else(|| {

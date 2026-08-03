@@ -200,29 +200,28 @@ impl<T: Float> LatLong<T> {
 }
 
 /// A Error type for an invalid `LatLong`.
-#[derive(Error, Debug, PartialEq)]
-pub enum LatLongError {
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum LatLongError<T> {
     #[error("invalid latitude value: `{0}`")]
-    Latitude(f64),
+    Latitude(T),
     #[error("invalid longitude value: `{0}`")]
-    Longitude(f64),
+    Longitude(T),
 }
 
 impl<T> TryFrom<(T, T)> for LatLong<T>
 where
     T: Float,
-    f64: From<T>,
 {
-    type Error = LatLongError;
+    type Error = LatLongError<T>;
 
     /// Attempt to convert a pair of f64 values in latitude, longitude order.
     ///
     /// return a valid `LatLong` or a `LatLongError`.
     fn try_from(lat_long: (T, T)) -> Result<Self, Self::Error> {
         if !is_valid_latitude(lat_long.0) {
-            Err(LatLongError::Latitude(f64::from(lat_long.0)))
+            Err(LatLongError::Latitude(lat_long.0))
         } else if !is_valid_longitude(lat_long.1) {
-            Err(LatLongError::Longitude(f64::from(lat_long.1)))
+            Err(LatLongError::Longitude(lat_long.1))
         } else {
             Ok(Self::new(
                 Degrees::<T>(lat_long.0),
@@ -541,12 +540,12 @@ where
 }
 
 /// A Error type for an invalid `Arc`.
-#[derive(Error, Debug, PartialEq)]
-pub enum ArcError {
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum ArcError<T> {
     #[error("positions are too close: `{0}`")]
-    PositionsTooClose(f64),
+    PositionsTooClose(T),
     #[error("positions are too far apart: `{0}`")]
-    PositionsTooFar(f64),
+    PositionsTooFar(T),
 }
 
 impl<T> TryFrom<(&LatLong<T>, &LatLong<T>)> for Arc<T>
@@ -554,7 +553,7 @@ where
     T: Float + FloatConst + na::Scalar + na::ComplexField<RealField = T>,
     f64: From<T>,
 {
-    type Error = ArcError;
+    type Error = ArcError<T>;
 
     /// Construct an `Arc` from a pair of positions.
     ///
@@ -573,9 +572,9 @@ where
             || {
                 let sq_d = vector::sq_distance(&a, &b);
                 if sq_d < T::one() {
-                    Err(ArcError::PositionsTooClose(f64::from(sq_d)))
+                    Err(ArcError::PositionsTooClose(sq_d))
                 } else {
-                    Err(ArcError::PositionsTooFar(f64::from(sq_d)))
+                    Err(ArcError::PositionsTooFar(sq_d))
                 }
             },
             |pole| {
